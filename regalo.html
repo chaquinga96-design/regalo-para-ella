@@ -29,7 +29,7 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(20, 5, 30, 0.95); /* Más opaco para mejor lectura */
+            background: rgba(20, 5, 30, 0.95);
             backdrop-filter: blur(10px);
             color: white;
             padding: 25px 30px;
@@ -39,13 +39,13 @@
             text-align: center;
             min-width: 300px;
             max-width: 80%;
-            z-index: 1000; /* Muy alto para que esté sobre todo */
+            z-index: 1000;
             opacity: 0;
             transition: opacity 0.3s ease;
             font-size: 1.2rem;
             line-height: 1.6;
             border-left: 5px solid hotpink;
-            pointer-events: auto; /* ¡IMPORTANTE! Permite interactuar con el video */
+            pointer-events: auto;
         }
         #mensaje.visible {
             opacity: 1;
@@ -67,7 +67,6 @@
             background: black;
             cursor: pointer;
         }
-        /* Botón para cerrar el mensaje */
         #cerrar-mensaje {
             position: absolute;
             top: 10px;
@@ -83,6 +82,7 @@
             align-items: center;
             justify-content: center;
             transition: background 0.2s;
+            z-index: 1001;
         }
         #cerrar-mensaje:hover {
             background: rgba(255,255,255,0.4);
@@ -134,51 +134,51 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         
-        // --- 1. Configuración inicial ---
+        // --- CONFIGURACIÓN INICIAL ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 18); // Un poco más lejos para ver mejor
+        camera.position.set(0, 3, 20);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.0; // Exposición normal
         document.body.appendChild(renderer.domElement);
         
-        // --- 2. Controles ---
+        // --- CONTROLES ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.5; // Más lento para apreciar mejor
+        controls.autoRotateSpeed = 0.4;
         controls.enableZoom = true;
-        controls.maxDistance = 30;
-        controls.minDistance = 3;
+        controls.maxDistance = 35;
+        controls.minDistance = 4;
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // --- 3. Luces (solo para las nebulosas, las fotos no tienen brillo extra) ---
+        // --- LUCES (MUY SUTILES para no afectar las imágenes) ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
-        const light1 = new THREE.PointLight(0xff4da6, 1, 20);
-        light1.position.set(3, 2, 4);
+        // Luces muy tenues para crear ambiente sin sobreexponer
+        const light1 = new THREE.PointLight(0xff4da6, 0.3, 30);
+        light1.position.set(5, 3, 5);
         scene.add(light1);
         
-        const light2 = new THREE.PointLight(0x4da6ff, 1, 20);
-        light2.position.set(-3, -1, 5);
+        const light2 = new THREE.PointLight(0x4da6ff, 0.3, 30);
+        light2.position.set(-5, -2, 5);
         scene.add(light2);
         
-        const light3 = new THREE.PointLight(0xaa88ff, 0.8, 25);
-        light3.position.set(2, 3, -5);
+        const light3 = new THREE.PointLight(0xaa88ff, 0.3, 30);
+        light3.position.set(3, 4, -5);
         scene.add(light3);
         
-        // --- 4. Partículas de fondo (nebulosa) ---
+        // --- PARTÍCULAS DE FONDO (nebulosa) ---
         const particleCount = 4000;
         const particlesGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
@@ -187,22 +187,20 @@
         const color = new THREE.Color();
         
         for (let i = 0; i < particleCount; i++) {
-            const radius = 8 + Math.random() * 6;
+            const radius = 10 + Math.random() * 8;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos((Math.random() * 2) - 1);
             
             const x = radius * Math.sin(phi) * Math.cos(theta);
-            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.6;
+            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.5;
             const z = radius * Math.cos(phi);
             
             positions[i*3] = x;
             positions[i*3+1] = y;
             positions[i*3+2] = z;
             
-            const hue = 0.8 + Math.random() * 0.3;
-            const saturation = 0.7;
-            const lightness = 0.5 + Math.random() * 0.4;
-            color.setHSL(hue % 1.0, saturation, lightness);
+            const hue = 0.7 + Math.random() * 0.4;
+            color.setHSL(hue % 1.0, 0.8, 0.5 + Math.random() * 0.3);
             
             colors[i*3] = color.r;
             colors[i*3+1] = color.g;
@@ -224,11 +222,11 @@
         const particles = new THREE.Points(particlesGeo, particlesMat);
         scene.add(particles);
         
-        // Estrellas de fondo NORMALES (blancas)
+        // Estrellas de fondo (blancas)
         const starsGeo = new THREE.BufferGeometry();
         const starsPos = new Float32Array(1000 * 3);
         for (let i = 0; i < 1000; i++) {
-            const r = 15 + Math.random() * 10;
+            const r = 18 + Math.random() * 12;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos((Math.random() * 2) - 1);
             starsPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -236,86 +234,86 @@
             starsPos[i*3+2] = r * Math.cos(phi);
         }
         starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05, sizeAttenuation: true, blending: THREE.AdditiveBlending });
+        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, sizeAttenuation: true, blending: THREE.AdditiveBlending });
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
         
-        // ===== RECUERDOS (nebulosas) CON POSICIONES REORGANIZADAS =====
-        // Ahora están más separadas para que se pueda hacer clic fácilmente
+        // ===== NEBULOSAS (textos y fotos con clic) REORGANIZADAS =====
+        // Distribuidas en un radio de 5-7 unidades con separación clara
         
         const recuerdos = [
-            // Textos - distribuidos en un radio más amplio
+            // Textos - en posiciones bien separadas
             { 
                 tipo: 'texto', 
                 contenido: '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨', 
-                posicion: [4.5, 2.0, 2.5], 
+                posicion: [5.5, 2.5, 3.0], 
                 color: 0xff66b2 
             },
             { 
                 tipo: 'texto', 
                 contenido: '💫 Que la vida te mime tanto como tú mereces 💫', 
-                posicion: [-4.0, -1.5, 3.8], 
+                posicion: [-5.0, -2.0, 4.5], 
                 color: 0x66b2ff 
             },
             { 
                 tipo: 'texto', 
                 contenido: '❤️ Tu risa es lo que más extraño ❤️', 
-                posicion: [2.0, 3.0, -3.5], 
+                posicion: [2.5, 3.5, -4.0], 
                 color: 0xcc66ff 
             },
             { 
                 tipo: 'texto', 
                 contenido: '🌌 Eres mi persona favorita en el universo 🌌', 
-                posicion: [-3.5, -2.5, -3.0], 
+                posicion: [-4.0, -3.0, -4.0], 
                 color: 0xffaa88 
             },
             { 
                 tipo: 'texto', 
                 contenido: 'No te alejes por favor.', 
-                posicion: [3.2, -1.0, -4.2], 
+                posicion: [4.0, -1.5, -5.0], 
                 color: 0xff66cc 
             },
-            // Imágenes (fotos) - bien distribuidas
+            // Imágenes (fotos con clic)
             { 
                 tipo: 'imagen', 
                 contenido: 'foto1.JPEG', 
                 textoAlternativo: 'Nuestra primera salida de pareja',
-                posicion: [5.0, -0.8, -2.5], 
+                posicion: [6.0, -1.2, -3.0], 
                 color: 0xffaa88 
             },
             { 
                 tipo: 'imagen', 
                 contenido: 'foto2.jpg',
                 textoAlternativo: '¡Feliz día!',
-                posicion: [-4.5, 2.2, 2.0], 
+                posicion: [-5.5, 2.8, 2.5], 
                 color: 0x88aaff 
             },
             { 
                 tipo: 'imagen', 
                 contenido: 'foto3.jpg',
                 textoAlternativo: 'Brilla hoy como nunca, es tu día',
-                posicion: [2.8, -2.5, 4.0], 
+                posicion: [3.2, -3.0, 5.0], 
                 color: 0xff88aa 
             },
             { 
                 tipo: 'imagen', 
                 contenido: 'foto4.jpg',
                 textoAlternativo: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!',
-                posicion: [-2.5, 3.2, -4.0],
+                posicion: [-3.0, 4.0, -4.8],
                 color: 0xff66cc 
             },
             { 
                 tipo: 'imagen', 
                 contenido: 'foto5.jpg',
                 textoAlternativo: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!',
-                posicion: [3.8, -2.8, -3.2],
+                posicion: [4.5, -3.2, -4.0],
                 color: 0xff66cc 
             },
             { 
                 tipo: 'imagen', 
                 contenido: 'foto6.jpg',
                 textoAlternativo: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.',
-                posicion: [-5.2, 1.5, 3.5],
+                posicion: [-6.2, 2.0, 4.2],
                 color: 0xff66cc 
             }
         ];
@@ -323,13 +321,13 @@
         const esferas = [];
         
         recuerdos.forEach((data) => {
-            const geometry = new THREE.SphereGeometry(0.5, 32, 32); // Un poco más grandes
+            const geometry = new THREE.SphereGeometry(0.6, 32, 32);
             
             const material = new THREE.MeshStandardMaterial({
                 color: data.color,
                 emissive: data.color,
-                emissiveIntensity: 0.4, // Brillo más sutil
-                roughness: 0.3,
+                emissiveIntensity: 0.3, // Brillo reducido
+                roughness: 0.4,
                 metalness: 0.1
             });
             
@@ -345,29 +343,30 @@
             scene.add(esfera);
             esferas.push(esfera);
             
-            const pointLight = new THREE.PointLight(data.color, 0.8, 5); // Luces más sutiles
+            // Luces muy sutiles alrededor de las nebulosas
+            const pointLight = new THREE.PointLight(data.color, 0.4, 6);
             pointLight.position.set(data.posicion[0], data.posicion[1], data.posicion[2]);
             scene.add(pointLight);
         });
         
-        // ===== ESTRELLAS MÁGICAS CON IMÁGENES REALES (SIN BRILLO EXTRA) =====
-        // Las imágenes se muestran con sus colores originales
+        // ===== ESTRELLAS MÁGICAS CON IMÁGENES REALES (SIN NINGÚN BRILLO) =====
+        // Distribuidas en un radio más amplio (7-9 unidades)
         
         const estrellasMagicas = [
-            { archivo: 'foto7.jpg', posicion: [7.0, 2.8, 5.0] },
-            { archivo: 'foto8.jpg', posicion: [-6.5, -2.5, 5.5] },
-            { archivo: 'foto9.jpg', posicion: [5.5, 4.2, -5.0] },
-            { archivo: 'foto10.jpg', posicion: [-5.0, -3.8, 6.0] },
-            { archivo: 'foto11.jpg', posicion: [6.0, -2.8, -5.5] },
-            { archivo: 'foto12.jpg', posicion: [-4.5, 4.8, 4.0] },
-            { archivo: 'foto13.jpg', posicion: [4.0, -4.2, 5.5] },
-            { archivo: 'foto14.jpg', posicion: [-6.0, 3.2, -5.0] },
-            { archivo: 'foto15.jpg', posicion: [5.2, -2.0, -6.0] },
-            { archivo: 'foto16.jpg', posicion: [-3.8, 5.2, 3.5] },
-            { archivo: 'foto17.jpg', posicion: [6.5, 3.0, -4.0] },
-            { archivo: 'foto18.jpg', posicion: [-3.5, -4.5, 5.8] },
-            { archivo: 'foto19.jpg', posicion: [4.8, 4.5, -4.8] },
-            { archivo: 'foto20.jpg', posicion: [-6.2, -2.0, 4.5] }
+            { archivo: 'foto7.jpg', posicion: [8.0, 3.5, 5.5] },
+            { archivo: 'foto8.jpg', posicion: [-7.5, -3.0, 6.0] },
+            { archivo: 'foto9.jpg', posicion: [6.5, 5.0, -5.5] },
+            { archivo: 'foto10.jpg', posicion: [-6.0, -4.5, 7.0] },
+            { archivo: 'foto11.jpg', posicion: [7.0, -3.5, -6.5] },
+            { archivo: 'foto12.jpg', posicion: [-5.5, 5.5, 5.0] },
+            { archivo: 'foto13.jpg', posicion: [5.0, -5.0, 6.5] },
+            { archivo: 'foto14.jpg', posicion: [-7.0, 4.0, -6.0] },
+            { archivo: 'foto15.jpg', posicion: [6.2, -2.5, -7.0] },
+            { archivo: 'foto16.jpg', posicion: [-4.8, 6.0, 4.5] },
+            { archivo: 'foto17.jpg', posicion: [7.5, 3.8, -5.0] },
+            { archivo: 'foto18.jpg', posicion: [-4.5, -5.2, 6.8] },
+            { archivo: 'foto19.jpg', posicion: [5.8, 5.2, -5.8] },
+            { archivo: 'foto20.jpg', posicion: [-7.2, -2.5, 5.5] }
         ];
         
         const textureLoader = new THREE.TextureLoader();
@@ -376,13 +375,19 @@
             textureLoader.load(
                 estrella.archivo,
                 (texture) => {
-                    // IMPORTANTE: SIN blending extra, solo la imagen pura
+                    // IMPORTANTE: Configuración para imagen PERFECTA sin alteraciones
+                    texture.minFilter = THREE.LinearFilter;
+                    texture.magFilter = THREE.LinearFilter;
+                    
                     const material = new THREE.SpriteMaterial({ 
                         map: texture,
-                        transparent: false, // Sin transparencia para colores sólidos
-                        blending: THREE.NormalBlending, // Modo de mezcla normal
+                        transparent: false,
+                        blending: THREE.NormalBlending, // Modo normal, sin mezclas
                         depthTest: true,
-                        sizeAttenuation: true
+                        depthWrite: true,
+                        sizeAttenuation: true,
+                        color: 0xffffff, // Color blanco puro para no alterar la imagen
+                        opacity: 1.0
                     });
                     
                     const sprite = new THREE.Sprite(material);
@@ -392,7 +397,7 @@
                         estrella.posicion[2]
                     );
                     
-                    sprite.scale.set(2.2, 2.2, 1); // Un poco más grandes
+                    sprite.scale.set(2.5, 2.5, 1);
                     
                     scene.add(sprite);
                     console.log(`✅ Imagen cargada: ${estrella.archivo}`);
@@ -404,25 +409,25 @@
             );
         });
         
-        // ===== VIDEOS (AHORA CON EL PROBLEMA DEL REPRODUCTOR CORREGIDO) =====
+        // ===== VIDEOS (con control de audio al cerrar) =====
         const estrellasVideo = [
-            { archivo: 'video1.mp4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66, posicion: [6.0, -4.2, -5.0] },
-            { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc, posicion: [-5.8, 4.8, -4.5] },
-            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc, posicion: [4.5, -5.0, 5.0] },
-            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff, posicion: [-5.0, 5.2, 3.8] },
-            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88, posicion: [6.2, 3.5, -5.0] },
-            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff, posicion: [-5.2, -4.5, 5.5] }
+            { archivo: 'video1.mp4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66, posicion: [7.0, -4.8, -5.5] },
+            { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc, posicion: [-6.8, 5.2, -5.0] },
+            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc, posicion: [5.2, -5.5, 6.0] },
+            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff, posicion: [-6.0, 5.8, 4.5] },
+            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88, posicion: [7.2, 4.0, -6.0] },
+            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff, posicion: [-6.2, -5.0, 6.2] }
         ];
         
         const objetosMagicos = [];
         
         estrellasVideo.forEach((video) => {
-            const geometry = new THREE.SphereGeometry(0.55, 24, 24);
+            const geometry = new THREE.SphereGeometry(0.6, 24, 24);
             const material = new THREE.MeshStandardMaterial({
                 color: video.color,
                 emissive: video.color,
-                emissiveIntensity: 0.5,
-                roughness: 0.2,
+                emissiveIntensity: 0.4,
+                roughness: 0.3,
                 metalness: 0.1
             });
             const esferaVideo = new THREE.Mesh(geometry, material);
@@ -438,25 +443,23 @@
             scene.add(esferaVideo);
             objetosMagicos.push(esferaVideo);
             
-            const pointLight = new THREE.PointLight(video.color, 0.8, 5);
+            const pointLight = new THREE.PointLight(video.color, 0.5, 6);
             pointLight.position.set(video.posicion[0], video.posicion[1], video.posicion[2]);
             scene.add(pointLight);
         });
         
-        // --- 6. Postprocesado (menos intenso para no afectar las imágenes) ---
-        const renderScene = new RenderPass(scene, camera);
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.8, 0.3, 0.7);
-        bloomPass.threshold = 0.2;
-        bloomPass.strength = 0.8; // Reducido para que las imágenes se vean naturales
-        bloomPass.radius = 0.5;
-        
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-        
-        // --- 7. Raycaster para clics (CORREGIDO para que el video no se cierre) ---
+        // --- RAYCASTER PARA CLICS (CON CONTROL DE VIDEO) ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
+        let videoActual = null; // Para controlar el video que se está reproduciendo
+        
+        function detenerVideoActual() {
+            if (videoActual) {
+                videoActual.pause();
+                videoActual.currentTime = 0;
+                videoActual = null;
+            }
+        }
         
         function onClick(event) {
             mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
@@ -472,14 +475,16 @@
                 const datos = objeto.userData;
                 const mensajeDiv = document.getElementById('mensaje');
                 
+                // Detener cualquier video que se esté reproduciendo
+                detenerVideoActual();
+                
                 let contenidoHTML = '';
-                contenidoHTML += '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\')">✕</div>';
+                contenidoHTML += '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\'); detenerVideoActual();">✕</div>';
                 
                 if (datos.tipo === 'video' && datos.esMagico) {
                     contenidoHTML += `<p style="margin:0; font-style:italic; margin-bottom:10px;">🎬</p>`;
                     contenidoHTML += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
-                    // Video con controles nativos - AHORA FUNCIONARÁ porque el div tiene pointer-events: auto
-                    contenidoHTML += `<video controls style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
+                    contenidoHTML += `<video id="video-reproduccion" controls style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
                 } 
                 else if (datos.tipo === 'texto') {
                     contenidoHTML += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
@@ -492,12 +497,19 @@
                 mensajeDiv.innerHTML = contenidoHTML;
                 mensajeDiv.classList.add('visible');
                 
-                // Efecto de brillo momentáneo en la esfera clickeada
+                // Si es video, guardar referencia y asegurar que se detenga al cerrar
+                if (datos.tipo === 'video' && datos.esMagico) {
+                    setTimeout(() => {
+                        videoActual = document.getElementById('video-reproduccion');
+                    }, 100);
+                }
+                
+                // Efecto visual en la esfera clickeada
                 if (objeto.material.emissiveIntensity !== undefined) {
-                    objeto.material.emissiveIntensity = 1.2;
+                    objeto.material.emissiveIntensity = 1.0;
                     setTimeout(() => {
                         if (objeto.material.emissiveIntensity !== undefined) {
-                            objeto.material.emissiveIntensity = datos.tipo === 'video' ? 0.5 : 0.4;
+                            objeto.material.emissiveIntensity = datos.tipo === 'video' ? 0.4 : 0.3;
                         }
                     }, 300);
                 }
@@ -506,7 +518,10 @@
         
         window.addEventListener('click', onClick);
         
-        // --- 8. Animación ---
+        // Hacer accesible la función para el botón de cerrar
+        window.detenerVideoActual = detenerVideoActual;
+        
+        // --- ANIMACIÓN ---
         function animate() {
             requestAnimationFrame(animate);
             
@@ -514,7 +529,7 @@
             stars.rotation.y -= 0.00005;
             
             controls.update();
-            composer.render();
+            renderer.render(scene, camera); // Sin postprocesado para mantener colores puros
         }
         
         animate();
@@ -524,7 +539,6 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
         }
     </script>
 </body>
