@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebulosa de los Recuerdos ✨</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 20px;
+            border-radius: 30px;
+            pointer-events: none;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 14px;
+        }
+        #mensaje {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 5, 30, 0.85);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 192, 203, 0.6);
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
+            text-align: center;
+            min-width: 250px;
+            max-width: 80%;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            border-left: 5px solid hotpink;
+        }
+        #mensaje.visible {
+            opacity: 1;
+        }
+        #mensaje img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 15px;
+            margin-top: 10px;
+            border: 3px solid white;
+        }
+        .subtitulo {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+            z-index: 10;
+        }
+        #zoom-indicator {
+            position: absolute;
+            bottom: 80px;
+            left: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,215,0,0.5);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div id="info">✨ Nebulosa de los Recuerdos | Usa la rueda del ratón para hacer zoom ✨</div>
+    <div id="zoom-indicator">⭐ LAS ESTRELLAS DORADAS SON FOTOS - HAZ ZOOM EN ELLAS ⭐</div>
+    <div id="mensaje"></div>
+    <div class="subtitulo">Con cariño, para ti 💫</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        
+        // --- 1. Configuración inicial ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+        
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 15);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+        
+        // --- 2. Controles ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+        controls.enableZoom = true;
+        controls.maxDistance = 30;
+        controls.minDistance = 2;
+        controls.enablePan = false;
+        controls.target.set(0, 0, 0);
+        
+        // --- 3. Luces ---
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        
+        const light1 = new THREE.PointLight(0xff4da6, 1, 20);
+        light1.position.set(3, 2, 4);
+        scene.add(light1);
+        
+        const light2 = new THREE.PointLight(0x4da6ff, 1, 20);
+        light2.position.set(-3, -1, 5);
+        scene.add(light2);
+        
+        const light3 = new THREE.PointLight(0xaa88ff, 0.8, 25);
+        light3.position.set(2, 3, -5);
+        scene.add(light3);
+        
+        // --- 4. Partículas de fondo (nebulosa) ---
+        const particleCount = 4000;
+        const particlesGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+        
+        const color = new THREE.Color();
+        
+        for (let i = 0; i < particleCount; i++) {
+            const radius = 8 + Math.random() * 5;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.6;
+            const z = radius * Math.cos(phi);
+            
+            positions[i*3] = x;
+            positions[i*3+1] = y;
+            positions[i*3+2] = z;
+            
+            const hue = 0.8 + Math.random() * 0.3;
+            const saturation = 0.7;
+            const lightness = 0.5 + Math.random() * 0.4;
+            color.setHSL(hue % 1.0, saturation, lightness);
+            
+            colors[i*3] = color.r;
+            colors[i*3+1] = color.g;
+            colors[i*3+2] = color.b;
+        }
+        
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particlesGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        
+        const particlesMat = new THREE.PointsMaterial({
+            size: 0.1,
+            vertexColors: true,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            depthWrite: false,
+            sizeAttenuation: true
+        });
+        
+        const particles = new THREE.Points(particlesGeo, particlesMat);
+        scene.add(particles);
+        
+        // Estrellas de fondo NORMALES (blancas)
+        const starsGeo = new THREE.BufferGeometry();
+        const starsPos = new Float32Array(1000 * 3);
+        for (let i = 0; i < 1000; i++) {
+            const r = 15 + Math.random() * 10;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            starsPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
+            starsPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+            starsPos[i*3+2] = r * Math.cos(phi);
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
+        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.05, sizeAttenuation: true, blending: THREE.AdditiveBlending });
+        const stars = new THREE.Points(starsGeo, starsMat);
+        scene.add(stars);
+        
+        // --- 5. RECUERDOS (tus esferas originales) ---
+        const recuerdos = [
+            // Textos
+            { 
+                tipo: 'texto', 
+                contenido: '✨ Gracias por todas las sonrisas espero que tengas un lindo cumpleaños✨', 
+                posicion: [3.0, 1.5, 1.5], 
+                color: 0xff66b2 
+            },
+            { 
+                tipo: 'texto', 
+                contenido: '💫 Que la vida te mime tanto como tú mereces,💫', 
+                posicion: [-2.5, -0.8, 2.8], 
+                color: 0x66b2ff 
+            },
+            { 
+                tipo: 'texto', 
+                contenido: '❤️ Tu risa es lo que más extraño ❤️', 
+                posicion: [1.2, 2.2, -2.0], 
+                color: 0xcc66ff 
+            },
+            { 
+                tipo: 'texto', 
+                contenido: '🌌 Eres mi persona favorita en el universo 🌌', 
+                posicion: [-2.8, -1.5, -1.8], 
+                color: 0xffaa88 
+            },
+            { 
+                tipo: 'texto', 
+                contenido: 'No te alejes por favor.', 
+                posicion: [2.2, -1.2, -2.5], 
+                color: 0xff66cc 
+            },
+            // Imágenes
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto1.JPEG', 
+                textoAlternativo: 'Nuestra primera salida de pareja',
+                posicion: [3.5, -0.5, -1.0], 
+                color: 0xffaa88 
+            },
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto2.jpg',
+                textoAlternativo: '¡Feliz día!',
+                posicion: [-3.0, 1.8, 1.2], 
+                color: 0x88aaff 
+            },
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto3.jpg',
+                textoAlternativo: 'Brilla hoy como nunca, es tu día',
+                posicion: [1.5, -2.0, 2.5], 
+                color: 0xff88aa 
+            },
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto4.jpg',
+                textoAlternativo: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!',
+                posicion: [-1.8, 2.0, -2.2],
+                color: 0xff66cc 
+            },
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto5.jpg',
+                textoAlternativo: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!',
+                posicion: [-2.8, 2.7, -2.8],
+                color: 0xff66cc 
+            },
+            { 
+                tipo: 'imagen', 
+                contenido: 'foto6.jpg',
+                textoAlternativo: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.',
+                posicion: [-4.8, 3.0, -1.2],
+                color: 0xff66cc 
+            }
+        ];
+        
+        const esferas = [];
+        
+        recuerdos.forEach((data) => {
+            const geometry = new THREE.SphereGeometry(0.45, 32, 32);
+            const material = new THREE.MeshStandardMaterial({
+                color: data.color,
+                emissive: data.color,
+                emissiveIntensity: 0.5,
+                roughness: 0.2,
+                metalness: 0.1
+            });
+            
+            const esfera = new THREE.Mesh(geometry, material);
+            esfera.position.set(data.posicion[0], data.posicion[1], data.posicion[2]);
+            
+            esfera.userData = {
+                tipo: data.tipo,
+                contenido: data.contenido,
+                textoAlternativo: data.textoAlternativo || ''
+            };
+            
+            scene.add(esfera);
+            esferas.push(esfera);
+            
+            const pointLight = new THREE.PointLight(data.color, 1.2, 4);
+            pointLight.position.set(data.posicion[0], data.posicion[1], data.posicion[2]);
+            scene.add(pointLight);
+        });
+        
+        // ========== NUEVO: ESTRELLAS MÁGICAS (VERSIÓN SIMPLE QUE SÍ FUNCIONA) ==========
+        
+        // Función para crear una textura simple (sin canvas)
+        function crearTexturaSimple(color, esImagen = true) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            // Dibujar una estrella brillante
+            const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+            gradient.addColorStop(0, 'white');
+            gradient.addColorStop(0.5, color);
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 256, 256);
+            
+            // Añadir icono
+            ctx.fillStyle = 'white';
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(esImagen ? '📷' : '▶', 128, 128);
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+        
+        // Configuración de las estrellas mágicas (IMÁGENES)
+        const estrellasMagicas = [
+            { archivo: 'foto7.jpg', color: '#ffaa88', posicion: [6.5, 2.5, 4.5] },
+            { archivo: 'foto8.jpg', color: '#88aaff', posicion: [-6.0, -2.0, 5.0] },
+            { archivo: 'foto9.jpg', color: '#ff88aa', posicion: [5.0, 4.0, -4.5] },
+            { archivo: 'foto10.jpg', color: '#66ffaa', posicion: [-4.5, -3.5, 5.5] },
+            { archivo: 'foto11.jpg', color: '#ffaa66', posicion: [5.5, -2.5, -5.0] },
+            { archivo: 'foto12.jpg', color: '#aa88ff', posicion: [-4.0, 4.5, 3.5] },
+            { archivo: 'foto13.jpg', color: '#ff88cc', posicion: [3.5, -4.0, 5.0] },
+            { archivo: 'foto14.jpg', color: '#88ffaa', posicion: [-5.5, 3.0, -4.5] },
+            { archivo: 'foto15.jpg', color: '#ff9966', posicion: [5.0, -1.8, -5.5] },
+            { archivo: 'foto16.jpg', color: '#66ccff', posicion: [-3.5, 5.0, 3.0] },
+            { archivo: 'foto17.jpg', color: '#ff99cc', posicion: [6.0, 2.8, -3.5] },
+            { archivo: 'foto18.jpg', color: '#aaff88', posicion: [-3.0, -4.2, 5.2] },
+            { archivo: 'foto19.jpg', color: '#ffaaff', posicion: [4.2, 4.2, -4.2] },
+            { archivo: 'foto20.jpg', color: '#aaccff', posicion: [-5.8, -1.5, 4.0] }
+        ];
+        
+        // Crear estrellas mágicas (versión simple - SIN errores)
+        estrellasMagicas.forEach((estrella, index) => {
+            const texture = crearTexturaSimple(estrella.color, true);
+            
+            const material = new THREE.SpriteMaterial({ 
+                map: texture,
+                transparent: true,
+                blending: THREE.AdditiveBlending,
+                depthTest: true,
+                sizeAttenuation: true
+            });
+            
+            const sprite = new THREE.Sprite(material);
+            sprite.position.set(
+                estrella.posicion[0], 
+                estrella.posicion[1], 
+                estrella.posicion[2]
+            );
+            
+            // Tamaño variable para que parezcan estrellas
+            sprite.scale.set(1.5, 1.5, 1);
+            
+            scene.add(sprite);
+        });
+        
+        console.log(`✨ Estrellas mágicas creadas: ${estrellasMagicas.length}`);
+        
+        // VIDEOS (se mantienen como esferas clickeables)
+        const estrellasVideo = [
+            { archivo: 'video1.mp4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66, posicion: [5.5, -4.0, -4.5] },
+            { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc, posicion: [-5.2, 4.5, -4.2] },
+            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc, posicion: [4.0, -4.8, 4.5] },
+            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff, posicion: [-4.5, 5.0, 3.2] },
+            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88, posicion: [5.8, 3.2, -4.5] },
+            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff, posicion: [-4.8, -4.0, 5.0] }
+        ];
+        
+        const objetosMagicos = [];
+        
+        estrellasVideo.forEach((video) => {
+            const geometry = new THREE.SphereGeometry(0.5, 24, 24);
+            const material = new THREE.MeshStandardMaterial({
+                color: video.color,
+                emissive: video.color,
+                emissiveIntensity: 0.8,
+                roughness: 0.2,
+                metalness: 0.1
+            });
+            const esferaVideo = new THREE.Mesh(geometry, material);
+            esferaVideo.position.set(video.posicion[0], video.posicion[1], video.posicion[2]);
+            
+            esferaVideo.userData = {
+                tipo: 'video',
+                archivo: video.archivo,
+                texto: video.texto,
+                esMagico: true
+            };
+            
+            scene.add(esferaVideo);
+            objetosMagicos.push(esferaVideo);
+            
+            const pointLight = new THREE.PointLight(video.color, 1.0, 5);
+            pointLight.position.set(video.posicion[0], video.posicion[1], video.posicion[2]);
+            scene.add(pointLight);
+        });
+        
+        console.log(`📹 Videos creados: ${estrellasVideo.length}`);
+        
+        // ===== FIN DE ESTRELLAS MÁGICAS =====
+        
+        // --- 6. Postprocesado ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.1;
+        bloomPass.strength = 1.5;
+        bloomPass.radius = 0.8;
+        
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+        
+        // --- 7. Raycaster para clics ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        function onClick(event) {
+            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            
+            const todosLosObjetosClickeables = [...esferas, ...objetosMagicos];
+            const intersects = raycaster.intersectObjects(todosLosObjetosClickeables);
+            
+            if (intersects.length > 0) {
+                const objeto = intersects[0].object;
+                const datos = objeto.userData;
+                const mensajeDiv = document.getElementById('mensaje');
+                
+                let contenidoHTML = '';
+                
+                if (datos.tipo === 'video' && datos.esMagico) {
+                    contenidoHTML = `<p style="margin:0; font-style:italic;">🎬</p><p style="margin:5px 0 0;">${datos.texto}</p>`;
+                    contenidoHTML += `<video controls style="max-width:300px; max-height:300px; border-radius:15px; margin-top:10px; border:3px solid white;" src="${datos.archivo}"></video>`;
+                } 
+                else if (datos.tipo === 'texto') {
+                    contenidoHTML = `<p style="margin:0; font-style:italic;">💬</p><p style="margin:5px 0 0;">${datos.contenido}</p>`;
+                } 
+                else if (datos.tipo === 'imagen') {
+                    contenidoHTML = `<p>${datos.textoAlternativo}</p>`;
+                    contenidoHTML += `<img src="${datos.contenido}" alt="${datos.textoAlternativo}" style="max-width:200px; max-height:200px; border-radius:15px; margin-top:10px; border:3px solid white;" onerror="this.style.display='none'">`;
+                }
+                
+                mensajeDiv.innerHTML = contenidoHTML;
+                mensajeDiv.classList.add('visible');
+                
+                objeto.material.emissiveIntensity = 1.5;
+                setTimeout(() => {
+                    objeto.material.emissiveIntensity = 0.5;
+                }, 300);
+            } else {
+                document.getElementById('mensaje').classList.remove('visible');
+            }
+        }
+        
+        window.addEventListener('click', onClick);
+        
+        // --- 8. Animación ---
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            particles.rotation.y += 0.0001;
+            stars.rotation.y -= 0.00005;
+            
+            controls.update();
+            composer.render();
+        }
+        
+        animate();
+        
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
