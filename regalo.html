@@ -109,7 +109,7 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
         
-        // --- CONFIGURACIÓN INICIAL ---
+        // --- 1. Configuración inicial ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
@@ -121,7 +121,7 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
         
-        // --- CONTROLES ---
+        // --- 2. Controles ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -133,7 +133,7 @@
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // --- LUCES ---
+        // --- 3. Luces ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
@@ -149,7 +149,7 @@
         light3.position.set(2, 3, -5);
         scene.add(light3);
         
-        // --- PARTÍCULAS DE FONDO ---
+        // --- 4. Partículas de fondo (nebulosa) ---
         const particleCount = 4000;
         const particlesGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
@@ -195,7 +195,7 @@
         const particles = new THREE.Points(particlesGeo, particlesMat);
         scene.add(particles);
         
-        // Estrellas de fondo normales
+        // Estrellas de fondo NORMALES (blancas)
         const starsGeo = new THREE.BufferGeometry();
         const starsPos = new Float32Array(1000 * 3);
         for (let i = 0; i < 1000; i++) {
@@ -211,7 +211,7 @@
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
         
-        // --- TUS NEBULOSAS ORIGINALES (con clic) ---
+        // --- 5. RECUERDOS (tus esferas originales) ---
         const recuerdos = [
             // Textos
             { 
@@ -318,7 +318,7 @@
             scene.add(pointLight);
         });
         
-        // ========== NUEVO: ESTRELLAS MÁGICAS CON IMÁGENES REALES ==========
+        // ========== NUEVO: ESTRELLAS MÁGICAS CON IMÁGENES REALES (AHORA FUNCIONAN EN EL SERVIDOR) ==========
         
         // Configuración de las estrellas mágicas (IMÁGENES REALES)
         const estrellasMagicas = [
@@ -338,51 +338,15 @@
             { archivo: 'foto20.jpg', color: '#aaccff', posicion: [-5.8, -1.5, 4.0] }
         ];
         
-        // Función para cargar imagen como textura (funciona en servidor)
-        function cargarImagenComoTextura(url) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.crossOrigin = "Anonymous";
-                img.onload = () => {
-                    const texture = new THREE.CanvasTexture(img);
-                    resolve(texture);
-                };
-                img.onerror = (e) => {
-                    console.warn(`Error cargando: ${url}`);
-                    // Crear textura de reemplazo
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 256;
-                    canvas.height = 256;
-                    const ctx = canvas.getContext('2d');
-                    
-                    const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-                    gradient.addColorStop(0, 'white');
-                    gradient.addColorStop(0.5, '#ffaa88');
-                    gradient.addColorStop(1, 'rgba(255,255,255,0)');
-                    
-                    ctx.fillStyle = gradient;
-                    ctx.fillRect(0, 0, 256, 256);
-                    
-                    ctx.fillStyle = 'white';
-                    ctx.font = '60px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText('📷', 128, 128);
-                    
-                    resolve(new THREE.CanvasTexture(canvas));
-                };
-                img.src = url;
-            });
-        }
+        // Cargador de texturas de Three.js (la forma correcta y simple)
+        const textureLoader = new THREE.TextureLoader();
         
         // Crear las estrellas mágicas
-        async function crearEstrellasMagicas() {
-            for (let i = 0; i < estrellasMagicas.length; i++) {
-                const estrella = estrellasMagicas[i];
-                
-                try {
-                    const texture = await cargarImagenComoTextura(estrella.archivo);
-                    
+        estrellasMagicas.forEach((estrella) => {
+            textureLoader.load(
+                estrella.archivo, // URL de la imagen
+                (texture) => {
+                    // Éxito: la imagen se cargó
                     const material = new THREE.SpriteMaterial({ 
                         map: texture,
                         transparent: true,
@@ -401,14 +365,44 @@
                     sprite.scale.set(2.0, 2.0, 1);
                     
                     scene.add(sprite);
-                } catch (error) {
-                    console.error(`Error con ${estrella.archivo}:`, error);
+                    console.log(`✅ Imagen cargada: ${estrella.archivo}`);
+                },
+                undefined, // progreso (no lo usamos)
+                (err) => {
+                    // Error: la imagen no se pudo cargar
+                    console.warn(`❌ Error cargando: ${estrella.archivo}. Creando estrella de respaldo.`);
+                    
+                    // Crear una estrella de color como respaldo
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 256;
+                    canvas.height = 256;
+                    const ctx = canvas.getContext('2d');
+                    
+                    const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+                    gradient.addColorStop(0, 'white');
+                    gradient.addColorStop(0.5, estrella.color);
+                    gradient.addColorStop(1, 'rgba(255,255,255,0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, 256, 256);
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = '60px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📷', 128, 128);
+                    
+                    const fallbackTexture = new THREE.CanvasTexture(canvas);
+                    const material = new THREE.SpriteMaterial({ map: fallbackTexture, transparent: true, blending: THREE.AdditiveBlending, depthTest: true, sizeAttenuation: true });
+                    const sprite = new THREE.Sprite(material);
+                    sprite.position.set(estrella.posicion[0], estrella.posicion[1], estrella.posicion[2]);
+                    sprite.scale.set(2.0, 2.0, 1);
+                    scene.add(sprite);
                 }
-            }
-            console.log(`✨ Estrellas mágicas creadas: ${estrellasMagicas.length}`);
-        }
+            );
+        });
         
-        // VIDEOS
+        // VIDEOS (se mantienen como esferas clickeables)
         const estrellasVideo = [
             { archivo: 'video1.mp4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66, posicion: [5.5, -4.0, -4.5] },
             { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc, posicion: [-5.2, 4.5, -4.2] },
@@ -447,10 +441,7 @@
             scene.add(pointLight);
         });
         
-        // Iniciar creación de estrellas
-        crearEstrellasMagicas();
-        
-        // --- POSTPROCESADO ---
+        // --- 6. Postprocesado ---
         const renderScene = new RenderPass(scene, camera);
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
         bloomPass.threshold = 0.1;
@@ -461,7 +452,7 @@
         composer.addPass(renderScene);
         composer.addPass(bloomPass);
         
-        // --- RAYCASTER PARA CLICS ---
+        // --- 7. Raycaster para clics ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         
@@ -507,7 +498,7 @@
         
         window.addEventListener('click', onClick);
         
-        // --- ANIMACIÓN ---
+        // --- 8. Animación ---
         function animate() {
             requestAnimationFrame(animate);
             
