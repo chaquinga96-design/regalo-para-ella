@@ -62,7 +62,7 @@
             z-index: 10;
         }
         
-        /* REPRODUCTOR MINIMIZABLE - SIMPLIFICADO */
+        /* REPRODUCTOR MINIMIZABLE */
         #music-player {
             position: absolute;
             top: 10px;
@@ -307,7 +307,7 @@
 </head>
 <body>
     <div id="info">✨ Nebulosa de los Recuerdos | Para ti ✨</div>
-    <div id="zoom-indicator">⭐ TOCA UNA ESTRELLA PARA COMENZAR ⭐</div>
+    <div id="zoom-indicator">⭐ TOCA CUALQUIER LUGAR PARA ACTIVAR LA MÚSICA ⭐</div>
     
     <div id="music-player">
         <div class="toggle-player" id="toggle-player">🔽</div>
@@ -357,7 +357,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- CONFIGURACIÓN BÁSICA (SIN COMPLICACIONES) ---
+        // --- CONFIGURACIÓN BÁSICA ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
@@ -379,7 +379,7 @@
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // --- LUCES (simples) ---
+        // --- LUCES ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
@@ -447,7 +447,7 @@
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
         
-        // --- FUNCIÓN PARA GENERAR POSICIONES (SIN OPTIMIZACIONES COMPLICADAS) ---
+        // --- FUNCIÓN PARA GENERAR POSICIONES ---
         function generarPosiciones(cantidad, radioMin, radioMax) {
             const posiciones = [];
             for (let i = 0; i < cantidad; i++) {
@@ -557,7 +557,7 @@
             }
         });
         
-        // --- VIDEOS ---
+        // --- VIDEOS (TODOS MUTEADOS) ---
         const objetosMagicos = [];
         const posVideos = generarPosiciones(6, 9, 13);
         const videosInfo = [
@@ -594,7 +594,7 @@
             }
         });
         
-        // --- REPRODUCTOR DE MÚSICA (SIN AUTOPLAY COMPLICADO) ---
+        // --- REPRODUCTOR DE MÚSICA (se activa con el primer clic) ---
         const songs = [
             'cancion1.mp3', 'cancion2.mp3', 'cancion3.mp3', 'cancion4.mp3',
             'cancion5.mp3', 'cancion6.mp3', 'cancion7.mp3', 'cancion8.mp3',
@@ -603,6 +603,8 @@
         
         let currentSongIndex = 0;
         let isPlaying = false;
+        let musicaActivada = false; // Control para activar solo una vez
+        
         const audio = new Audio();
         audio.loop = false;
         
@@ -619,15 +621,16 @@
         }
         
         function playMusic() {
+            if (!musicaActivada) {
+                musicaActivada = true;
+                document.getElementById('zoom-indicator').textContent = '⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐';
+            }
             audio.play().then(() => {
                 isPlaying = true;
                 document.getElementById('play-pause').textContent = '⏸';
                 document.getElementById('play-pause-mini').textContent = '⏸';
-                document.getElementById('zoom-indicator').textContent = '⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐';
             }).catch(() => {
-                isPlaying = false;
-                document.getElementById('play-pause').textContent = '▶';
-                document.getElementById('play-pause-mini').textContent = '▶';
+                // Silenciar errores de autoplay
             });
         }
         
@@ -720,16 +723,18 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
         
-        // Iniciar música con el primer clic en cualquier parte
-        function iniciarMusica() {
-            if (!isPlaying && audio.paused) {
+        // Activar música con el primer clic en cualquier parte de la página
+        function activarMusica() {
+            if (!musicaActivada) {
                 playMusic();
             }
-            document.removeEventListener('click', iniciarMusica);
-            document.removeEventListener('touchstart', iniciarMusica);
+            // Remover listeners después del primer clic
+            document.removeEventListener('click', activarMusica);
+            document.removeEventListener('touchstart', activarMusica);
         }
-        document.addEventListener('click', iniciarMusica);
-        document.addEventListener('touchstart', iniciarMusica);
+        
+        document.addEventListener('click', activarMusica);
+        document.addEventListener('touchstart', activarMusica);
         
         // --- MINIMIZAR/EXPANDIR REPRODUCTOR ---
         const musicPlayer = document.getElementById('music-player');
@@ -740,7 +745,7 @@
             toggleBtn.textContent = musicPlayer.classList.contains('minimized') ? '⬆️' : '🔽';
         });
         
-        // --- RAYCASTER (SIN BLOQUEOS) ---
+        // --- RAYCASTER ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let videoActual = null;
@@ -755,6 +760,7 @@
         window.detenerVideoActual = detenerVideoActual;
         
         function handleClick(event) {
+            // Calcular coordenadas normalizadas
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -777,13 +783,15 @@
                 let html = '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\'); detenerVideoActual();">✕</div>';
                 
                 if (datos.tipo === 'video') {
-                    html += `<p>🎬</p><p>${datos.texto}</p>`;
-                    html += `<video id="video-reproduccion" controls playsinline style="width:100%;" src="${datos.archivo}"></video>`;
+                    html += `<p style="margin:0 0 10px;">🎬</p>`;
+                    html += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
+                    // IMPORTANTE: Video MUTEADO para no interferir con la música
+                    html += `<video id="video-reproduccion" muted controls playsinline style="width:100%; border-radius:15px;" src="${datos.archivo}"></video>`;
                 } else if (datos.tipo === 'texto') {
-                    html += `<p>💬</p><p>${datos.contenido}</p>`;
+                    html += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
                 } else if (datos.tipo === 'imagen') {
-                    html += `<p>${datos.textoAlternativo}</p>`;
-                    html += `<img src="${datos.contenido}" style="max-width:100%;">`;
+                    html += `<p style="margin-bottom:15px;">${datos.textoAlternativo}</p>`;
+                    html += `<img src="${datos.contenido}" style="max-width:100%; border-radius:15px;">`;
                 }
                 
                 mensajeDiv.innerHTML = html;
