@@ -2,71 +2,276 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nebulosa de los Recuerdos ✨</title>
     <style>
+        /* RESET Y ESTILOS BASE */
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
+            touch-action: manipulation; /* Mejora la respuesta táctil */
+            -webkit-tap-highlight-color: transparent;
         }
+        
+        /* ELEMENTOS FLOTANTES - VERSIÓN RESPONSIVE */
         #info {
             position: absolute;
-            top: 20px;
-            left: 20px;
+            top: 10px;
+            left: 10px;
             color: white;
             background: rgba(0,0,0,0.6);
-            padding: 10px 20px;
+            padding: 8px 16px;
             border-radius: 30px;
             pointer-events: none;
             z-index: 10;
             backdrop-filter: blur(5px);
             border: 1px solid rgba(255,255,255,0.2);
-            font-size: 14px;
+            font-size: 12px;
+            max-width: calc(100% - 20px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        #mensaje {
+        
+        #zoom-indicator {
             position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(20, 5, 30, 0.95);
+            bottom: 100px;
+            left: 10px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,215,0,0.5);
+            animation: pulse 2s infinite;
+            max-width: calc(100% - 20px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .subtitulo {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            color: rgba(255,255,255,0.3);
+            font-size: 10px;
+            z-index: 10;
+        }
+        
+        /* REPRODUCTOR DE MÚSICA - VERSIÓN RESPONSIVE */
+        #music-player {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(20, 5, 30, 0.9);
             backdrop-filter: blur(10px);
             color: white;
-            padding: 25px 30px;
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 192, 203, 0.6);
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.3);
+            z-index: 100;
+            width: min(280px, calc(100% - 20px));
+            pointer-events: auto;
+            max-width: 280px;
+        }
+        
+        @media (max-width: 600px) {
+            #music-player {
+                width: calc(100% - 20px);
+                max-width: none;
+                left: 10px;
+                right: 10px;
+                top: 10px;
+            }
+            
+            #info {
+                top: 120px; /* Debajo del reproductor en móvil */
+                left: 10px;
+                font-size: 11px;
+            }
+            
+            #zoom-indicator {
+                bottom: 120px;
+                font-size: 11px;
+            }
+            
+            .subtitulo {
+                bottom: 15px;
+                font-size: 9px;
+            }
+        }
+        
+        #music-player .title {
+            font-size: 14px;
+            margin-bottom: 8px;
+            text-align: center;
+            color: #ff99cc;
+            font-weight: bold;
+        }
+        
+        #music-player .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        #music-player button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        #music-player button:active {
+            background: rgba(255,105,180,0.7);
+            transform: scale(0.95);
+        }
+        
+        #music-player .song-info {
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #ffccff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 5px;
+        }
+        
+        #music-player .progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        #music-player .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: hotpink;
+            border-radius: 6px;
+            transition: width 0.1s linear;
+        }
+        
+        #music-player .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+        
+        #music-player .volume {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #music-player .volume span {
+            font-size: 14px;
+        }
+        
+        #music-player .volume-slider {
+            flex: 1;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        #music-player .volume-bar {
+            width: 70%;
+            height: 100%;
+            background: hotpink;
+            border-radius: 6px;
+        }
+        
+        /* MENSAJE EMERGENTE - VERSIÓN RESPONSIVE */
+        #mensaje {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 5, 30, 0.98);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 20px;
             border-radius: 20px;
             border: 1px solid rgba(255, 192, 203, 0.6);
             box-shadow: 0 0 30px rgba(255, 105, 180, 0.5);
             text-align: center;
-            min-width: 300px;
-            max-width: 80%;
-            z-index: 1000;
+            width: min(500px, calc(100% - 40px));
+            max-width: 500px;
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 2000;
             opacity: 0;
             transition: opacity 0.3s ease;
-            font-size: 1.2rem;
-            line-height: 1.6;
+            font-size: 1rem;
+            line-height: 1.5;
             border-left: 5px solid hotpink;
             pointer-events: auto;
+            -webkit-overflow-scrolling: touch;
         }
+        
+        @media (max-width: 600px) {
+            #mensaje {
+                bottom: 10px;
+                padding: 15px;
+                width: calc(100% - 20px);
+                max-height: 60vh;
+                font-size: 14px;
+            }
+            
+            #mensaje img, #mensaje video {
+                max-width: 100%;
+                max-height: 200px;
+            }
+        }
+        
         #mensaje.visible {
             opacity: 1;
         }
-        #mensaje img {
-            max-width: 300px;
+        
+        #mensaje img, #mensaje video {
+            max-width: 100%;
             max-height: 300px;
             border-radius: 15px;
             margin-top: 10px;
             border: 3px solid white;
             cursor: pointer;
         }
-        #mensaje video {
-            max-width: 300px;
-            max-height: 300px;
-            border-radius: 15px;
-            margin-top: 10px;
-            border: 3px solid white;
-            background: black;
-            cursor: pointer;
-        }
+        
         #cerrar-mensaje {
             position: absolute;
             top: 10px;
@@ -75,143 +280,28 @@
             font-size: 24px;
             cursor: pointer;
             background: rgba(255,255,255,0.2);
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.2s;
-            z-index: 1001;
-        }
-        #cerrar-mensaje:hover {
-            background: rgba(255,255,255,0.4);
-        }
-        .subtitulo {
-            position: absolute;
-            bottom: 10px;
-            right: 20px;
-            color: rgba(255,255,255,0.3);
-            font-size: 12px;
-            z-index: 10;
-        }
-        #zoom-indicator {
-            position: absolute;
-            bottom: 80px;
-            left: 20px;
-            color: white;
-            background: rgba(0,0,0,0.5);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            z-index: 10;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,215,0,0.5);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.7; }
-            50% { opacity: 1; }
-            100% { opacity: 0.7; }
+            z-index: 2001;
+            touch-action: manipulation;
         }
         
-        /* Reproductor de música */
-        #music-player {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(20, 5, 30, 0.85);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 192, 203, 0.6);
-            box-shadow: 0 0 20px rgba(255, 105, 180, 0.3);
-            z-index: 100;
-            width: 280px;
-            pointer-events: auto;
+        #cerrar-mensaje:active {
+            background: rgba(255,105,180,0.7);
         }
-        #music-player .title {
-            font-size: 16px;
-            margin-bottom: 10px;
-            text-align: center;
-            color: #ff99cc;
-            font-weight: bold;
-        }
-        #music-player .controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        #music-player button {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-        #music-player button:hover {
-            background: rgba(255,105,180,0.5);
-            border-color: hotpink;
-            transform: scale(1.1);
-        }
-        #music-player .song-info {
-            font-size: 14px;
-            text-align: center;
-            margin-bottom: 8px;
-            color: #ffccff;
-        }
-        #music-player .progress {
-            width: 100%;
-            height: 5px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px;
-            margin-bottom: 5px;
-            cursor: pointer;
-        }
-        #music-player .progress-bar {
-            width: 0%;
-            height: 100%;
-            background: hotpink;
-            border-radius: 5px;
-            transition: width 0.1s linear;
-        }
-        #music-player .time {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: #aaa;
-        }
-        #music-player .volume {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin-top: 8px;
-        }
-        #music-player .volume-slider {
-            flex: 1;
-            height: 5px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #music-player .volume-bar {
-            width: 70%;
-            height: 100%;
-            background: hotpink;
-            border-radius: 5px;
+        
+        /* Clase para deshabilitar interacción durante carga */
+        .loading * {
+            pointer-events: none !important;
         }
     </style>
 </head>
-<body>
+<body class="loading">
     <div id="info">✨ Nebulosa de los Recuerdos | Para ti ✨</div>
     <div id="zoom-indicator">⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐</div>
     
@@ -221,7 +311,7 @@
         <div class="song-info" id="current-song">Canción 1 de 10</div>
         <div class="controls">
             <button id="prev-song" title="Anterior">⏮</button>
-            <button id="play-pause" title="Reproducir/Pausa">▶</button>
+            <button id="play-pause" title="Reproducir/Pausa">⏸</button>
             <button id="next-song" title="Siguiente">⏭</button>
         </div>
         <div class="progress" id="progress-bar">
@@ -255,7 +345,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- REPRODUCTOR DE MÚSICA ---
+        // --- REPRODUCTOR DE MÚSICA (CORREGIDO) ---
         const songs = [
             'cancion1.mp3',
             'cancion2.mp3',
@@ -270,16 +360,20 @@
         ];
         
         let currentSongIndex = 0;
-        let isPlaying = false;
+        let isPlaying = true; // Inicia en true
         const audio = new Audio();
-        audio.loop = false; // Nosotros manejamos el bucle manualmente
+        audio.loop = false; // Nosotros manejamos el bucle
         
         function loadSong(index) {
             audio.src = songs[index];
             audio.load();
             document.getElementById('current-song').textContent = `Canción ${index + 1} de 10`;
             if (isPlaying) {
-                audio.play();
+                audio.play().catch(e => {
+                    console.log('Auto-play bloqueado, esperando interacción');
+                    isPlaying = false;
+                    document.getElementById('play-pause').textContent = '▶';
+                });
             }
         }
         
@@ -290,7 +384,7 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
         
-        // Event listeners para el reproductor
+        // Event listeners
         audio.addEventListener('timeupdate', () => {
             const progress = (audio.currentTime / audio.duration) * 100;
             document.getElementById('progress-fill').style.width = progress + '%';
@@ -299,37 +393,52 @@
         });
         
         audio.addEventListener('ended', () => {
-            // Pasar a la siguiente canción automáticamente
+            // Pasar a la siguiente canción automáticamente (bucle infinito)
             currentSongIndex = (currentSongIndex + 1) % songs.length;
             loadSong(currentSongIndex);
         });
         
+        // Cargar primera canción e intentar reproducir
+        loadSong(0);
+        
+        // Si el auto-play falla, esperar interacción del usuario
+        document.addEventListener('click', function initAudio() {
+            if (!isPlaying && audio.paused) {
+                audio.play().then(() => {
+                    isPlaying = true;
+                    document.getElementById('play-pause').textContent = '⏸';
+                }).catch(e => console.log('Error al reproducir:', e));
+            }
+            document.removeEventListener('click', initAudio);
+        }, { once: true });
+        
         // Controles del reproductor
-        document.getElementById('play-pause').addEventListener('click', () => {
+        document.getElementById('play-pause').addEventListener('click', (e) => {
+            e.stopPropagation();
             if (isPlaying) {
                 audio.pause();
                 document.getElementById('play-pause').textContent = '▶';
             } else {
-                if (!audio.src) loadSong(0);
                 audio.play();
                 document.getElementById('play-pause').textContent = '⏸';
             }
             isPlaying = !isPlaying;
         });
         
-        document.getElementById('next-song').addEventListener('click', () => {
+        document.getElementById('next-song').addEventListener('click', (e) => {
+            e.stopPropagation();
             currentSongIndex = (currentSongIndex + 1) % songs.length;
             loadSong(currentSongIndex);
-            if (isPlaying) audio.play();
         });
         
-        document.getElementById('prev-song').addEventListener('click', () => {
+        document.getElementById('prev-song').addEventListener('click', (e) => {
+            e.stopPropagation();
             currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
             loadSong(currentSongIndex);
-            if (isPlaying) audio.play();
         });
         
         document.getElementById('progress-bar').addEventListener('click', (e) => {
+            e.stopPropagation();
             const rect = e.target.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
@@ -338,23 +447,25 @@
         });
         
         document.getElementById('volume-slider').addEventListener('click', (e) => {
+            e.stopPropagation();
             const rect = e.target.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const width = rect.width;
-            const percentage = x / width;
+            const percentage = Math.max(0, Math.min(1, x / width));
             audio.volume = percentage;
             document.getElementById('volume-bar').style.width = (percentage * 100) + '%';
         });
         
-        // Cargar primera canción
-        loadSong(0);
-        
-        // --- CONFIGURACIÓN 3D ---
+        // --- CONFIGURACIÓN 3D (MEJORADA PARA MÓVIL) ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
+        // Ajustar cámara según dispositivo
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const cameraDistance = isMobile ? 24 : 22;
+        
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 3, 22);
+        camera.position.set(0, 3, cameraDistance);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -367,18 +478,25 @@
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.35;
+        controls.autoRotateSpeed = isMobile ? 0.3 : 0.35;
         controls.enableZoom = true;
         controls.maxDistance = 35;
         controls.minDistance = 5;
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // --- LUCES (solo afectan a nebulosas, NO a imágenes) ---
+        // Mejorar precisión táctil
+        if (isMobile) {
+            controls.touches = {
+                ONE: THREE.TOUCH.ROTATE,
+                TWO: THREE.TOUCH.DOLLY_PAN
+            };
+        }
+        
+        // --- LUCES ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
-        // Luces de colores para ambiente
         const light1 = new THREE.PointLight(0xff4da6, 0.8, 30);
         light1.position.set(6, 4, 6);
         scene.add(light1);
@@ -391,8 +509,8 @@
         light3.position.set(4, 5, -6);
         scene.add(light3);
         
-        // --- PARTÍCULAS DE FONDO (con brillo) ---
-        const particleCount = 5000;
+        // --- PARTÍCULAS DE FONDO ---
+        const particleCount = isMobile ? 3000 : 5000;
         const particlesGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
@@ -435,7 +553,7 @@
         const particles = new THREE.Points(particlesGeo, particlesMat);
         scene.add(particles);
         
-        // Estrellas de fondo (blancas) con brillo
+        // Estrellas de fondo
         const starsGeo = new THREE.BufferGeometry();
         const starsPos = new Float32Array(1500 * 3);
         for (let i = 0; i < 1500; i++) {
@@ -451,7 +569,12 @@
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
         
-        // ===== FUNCIÓN PARA GENERAR POSICIONES DISTRIBUIDAS UNIFORMEMENTE =====
+        // Quitar clase loading cuando todo esté listo
+        setTimeout(() => {
+            document.body.classList.remove('loading');
+        }, 1000);
+        
+        // ===== FUNCIÓN PARA GENERAR POSICIONES =====
         function generarPosiciones(cantidad, radioMin, radioMax, excluir = []) {
             const posiciones = [];
             const intentosMax = 1000;
@@ -462,10 +585,8 @@
                 let nuevaPos;
                 
                 while (!valida && intentos < intentosMax) {
-                    // Generar posición en esfera
                     const u = Math.random();
                     const v = Math.random();
-                    const w = Math.random();
                     
                     const theta = 2 * Math.PI * u;
                     const phi = Math.acos(2 * v - 1);
@@ -477,7 +598,6 @@
                     
                     nuevaPos = [x, y, z];
                     
-                    // Verificar distancia con posiciones existentes
                     valida = true;
                     for (let j = 0; j < posiciones.length; j++) {
                         const dx = nuevaPos[0] - posiciones[j][0];
@@ -485,13 +605,12 @@
                         const dz = nuevaPos[2] - posiciones[j][2];
                         const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
                         
-                        if (dist < 3.0) { // Distancia mínima entre objetos
+                        if (dist < 3.2) {
                             valida = false;
                             break;
                         }
                     }
                     
-                    // Verificar distancia con posiciones excluidas
                     if (valida) {
                         for (let j = 0; j < excluir.length; j++) {
                             const dx = nuevaPos[0] - excluir[j][0];
@@ -499,7 +618,7 @@
                             const dz = nuevaPos[2] - excluir[j][2];
                             const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
                             
-                            if (dist < 3.0) {
+                            if (dist < 3.5) {
                                 valida = false;
                                 break;
                             }
@@ -512,7 +631,6 @@
                 if (valida) {
                     posiciones.push(nuevaPos);
                 } else {
-                    // Si no encontramos posición válida, poner en el borde
                     const theta = 2 * Math.PI * Math.random();
                     const phi = Math.acos(2 * Math.random() - 1);
                     const r = radioMax - 1;
@@ -526,11 +644,10 @@
             return posiciones;
         }
         
-        // ===== GENERAR POSICIONES PARA NEBULOSAS =====
-        const numNebulosas = 11; // 5 textos + 6 imágenes
+        // ===== NEBULOSAS =====
+        const numNebulosas = 11;
         const posicionesNebulosas = generarPosiciones(numNebulosas, 6, 9);
         
-        // ===== NEBULOSAS (con brillo) =====
         const textos = [
             '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨',
             '💫 Que la vida te mime tanto como tú mereces 💫',
@@ -555,10 +672,9 @@
         
         const esferas = [];
         
-        // Textos (primeras 5)
         for (let i = 0; i < 5; i++) {
             const pos = posicionesNebulosas[i];
-            const geometry = new THREE.SphereGeometry(0.65, 32, 32);
+            const geometry = new THREE.SphereGeometry(0.7, 32, 32);
             const material = new THREE.MeshStandardMaterial({
                 color: coloresNebulosas[i],
                 emissive: coloresNebulosas[i],
@@ -583,10 +699,9 @@
             scene.add(pointLight);
         }
         
-        // Imágenes de nebulosas (siguientes 6)
         for (let i = 0; i < 6; i++) {
             const pos = posicionesNebulosas[i + 5];
-            const geometry = new THREE.SphereGeometry(0.65, 32, 32);
+            const geometry = new THREE.SphereGeometry(0.7, 32, 32);
             const material = new THREE.MeshStandardMaterial({
                 color: coloresNebulosas[i + 5],
                 emissive: coloresNebulosas[i + 5],
@@ -612,8 +727,7 @@
             scene.add(pointLight);
         }
         
-        // ===== GENERAR POSICIONES PARA ESTRELLAS MÁGICAS (IMÁGENES SIN BRILLO) =====
-        // Usamos las posiciones de nebulosas como exclusión
+        // ===== ESTRELLAS MÁGICAS =====
         const posicionesNebulosasArray = posicionesNebulosas.map(p => [p[0], p[1], p[2]]);
         const posicionesEstrellas = generarPosiciones(14, 8, 12, posicionesNebulosasArray);
         
@@ -630,15 +744,14 @@
             textureLoader.load(
                 archivo,
                 (texture) => {
-                    // Material SIN NINGÚN BRILLO - solo la imagen pura
                     const material = new THREE.SpriteMaterial({ 
                         map: texture,
                         transparent: false,
-                        blending: THREE.NormalBlending, // Modo normal, sin brillo
+                        blending: THREE.NormalBlending,
                         depthTest: true,
                         depthWrite: true,
                         sizeAttenuation: true,
-                        color: 0xffffff // Color blanco puro
+                        color: 0xffffff
                     });
                     
                     const sprite = new THREE.Sprite(material);
@@ -647,7 +760,6 @@
                     sprite.scale.set(2.3, 2.3, 1);
                     
                     scene.add(sprite);
-                    console.log(`✅ Imagen cargada: ${archivo}`);
                 },
                 undefined,
                 (err) => {
@@ -656,7 +768,7 @@
             );
         });
         
-        // ===== VIDEOS (SIN SONIDO) =====
+        // ===== VIDEOS =====
         const posicionesVideos = generarPosiciones(6, 9, 13, [...posicionesNebulosasArray, ...posicionesEstrellas]);
         
         const videosInfo = [
@@ -671,7 +783,7 @@
         const objetosMagicos = [];
         
         videosInfo.forEach((video, index) => {
-            const geometry = new THREE.SphereGeometry(0.7, 24, 24);
+            const geometry = new THREE.SphereGeometry(0.75, 24, 24);
             const material = new THREE.MeshStandardMaterial({
                 color: video.color,
                 emissive: video.color,
@@ -698,7 +810,7 @@
             scene.add(pointLight);
         });
         
-        // --- RAYCASTER PARA CLICS ---
+        // --- RAYCASTER PARA CLICS (MEJORADO PARA MÓVIL) ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let videoActual = null;
@@ -713,9 +825,17 @@
         
         window.detenerVideoActual = detenerVideoActual;
         
-        function onClick(event) {
-            mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
-            mouse.y = -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+        function handleInteraction(event) {
+            // Prevenir comportamiento por defecto en móvil
+            event.preventDefault();
+            
+            // Calcular coordenadas normalizadas
+            const rect = renderer.domElement.getBoundingClientRect();
+            const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+            const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+            
+            mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
             
             raycaster.setFromCamera(mouse, camera);
             
@@ -735,8 +855,7 @@
                 if (datos.tipo === 'video' && datos.esMagico) {
                     contenidoHTML += `<p style="margin:0; font-style:italic; margin-bottom:10px;">🎬</p>`;
                     contenidoHTML += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
-                    // Video SIN SONIDO (muted)
-                    contenidoHTML += `<video id="video-reproduccion" muted controls style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
+                    contenidoHTML += `<video id="video-reproduccion" muted controls playsinline style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
                 } 
                 else if (datos.tipo === 'texto') {
                     contenidoHTML += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
@@ -766,7 +885,9 @@
             }
         }
         
-        window.addEventListener('click', onClick);
+        // Event listeners para click y touch
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', handleInteraction, { passive: false });
         
         // --- ANIMACIÓN ---
         function animate() {
