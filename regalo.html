@@ -251,7 +251,8 @@
             #zoom-indicator { bottom: 120px; }
         }
         
-        #mensaje {
+        /* MENSAJE EMERGENTE - ahora se crea y destruye dinámicamente */
+        .mensaje-contenedor {
             position: absolute;
             bottom: 20px;
             left: 50%;
@@ -269,16 +270,12 @@
             max-height: 70vh;
             overflow-y: auto;
             z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.2s ease;
             font-size: 1rem;
             border-left: 5px solid hotpink;
             pointer-events: auto;
         }
         
-        #mensaje.visible { opacity: 1; }
-        
-        #mensaje img, #mensaje video {
+        .mensaje-contenedor img, .mensaje-contenedor video {
             max-width: 100%;
             max-height: 300px;
             border-radius: 15px;
@@ -286,7 +283,7 @@
             border: 3px solid white;
         }
         
-        #cerrar-mensaje {
+        .cerrar-mensaje-btn {
             position: absolute;
             top: 10px;
             right: 15px;
@@ -341,7 +338,6 @@
         </div>
     </div>
     
-    <div id="mensaje"></div>
     <div class="subtitulo">Con todo mi cariño 💫</div>
 
     <script type="importmap">
@@ -594,7 +590,7 @@
             }
         });
         
-        // --- REPRODUCTOR DE MÚSICA (se activa con el primer clic) ---
+        // --- REPRODUCTOR DE MÚSICA ---
         const songs = [
             'cancion1.mp3', 'cancion2.mp3', 'cancion3.mp3', 'cancion4.mp3',
             'cancion5.mp3', 'cancion6.mp3', 'cancion7.mp3', 'cancion8.mp3',
@@ -603,7 +599,7 @@
         
         let currentSongIndex = 0;
         let isPlaying = false;
-        let musicaActivada = false; // Control para activar solo una vez
+        let musicaActivada = false;
         
         const audio = new Audio();
         audio.loop = false;
@@ -629,9 +625,7 @@
                 isPlaying = true;
                 document.getElementById('play-pause').textContent = '⏸';
                 document.getElementById('play-pause-mini').textContent = '⏸';
-            }).catch(() => {
-                // Silenciar errores de autoplay
-            });
+            }).catch(() => {});
         }
         
         function togglePlay() {
@@ -645,7 +639,6 @@
             isPlaying = !isPlaying;
         }
         
-        // Precargar primera canción
         loadSong(0);
         
         // Event listeners del reproductor
@@ -723,12 +716,11 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
         
-        // Activar música con el primer clic en cualquier parte de la página
+        // Activar música con el primer clic
         function activarMusica() {
             if (!musicaActivada) {
                 playMusic();
             }
-            // Remover listeners después del primer clic
             document.removeEventListener('click', activarMusica);
             document.removeEventListener('touchstart', activarMusica);
         }
@@ -745,10 +737,9 @@
             toggleBtn.textContent = musicPlayer.classList.contains('minimized') ? '⬆️' : '🔽';
         });
         
-        // --- RAYCASTER ---
-        const raycaster = new THREE.Raycaster();
-        const mouse = new THREE.Vector2();
+        // --- VARIABLES PARA EL MENSAJE ---
         let videoActual = null;
+        let mensajeActual = null;
         
         function detenerVideoActual() {
             if (videoActual) {
@@ -757,10 +748,56 @@
                 videoActual = null;
             }
         }
+        
+        // Función para cerrar el mensaje (ELIMINAR del DOM)
+        function cerrarMensaje() {
+            if (mensajeActual) {
+                mensajeActual.remove(); // Eliminar completamente del DOM
+                mensajeActual = null;
+            }
+            detenerVideoActual();
+        }
+        
+        // Función para crear y mostrar un mensaje
+        function mostrarMensaje(datos) {
+            // Cerrar mensaje anterior si existe
+            cerrarMensaje();
+            
+            // Crear nuevo contenedor
+            const contenedor = document.createElement('div');
+            contenedor.className = 'mensaje-contenedor';
+            
+            let html = '<div class="cerrar-mensaje-btn" onclick="this.parentElement.remove(); window.detenerVideoActual && window.detenerVideoActual();">✕</div>';
+            
+            if (datos.tipo === 'video') {
+                html += `<p style="margin:0 0 10px;">🎬</p>`;
+                html += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
+                html += `<video id="video-reproduccion" muted controls playsinline style="width:100%; border-radius:15px;" src="${datos.archivo}"></video>`;
+            } else if (datos.tipo === 'texto') {
+                html += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
+            } else if (datos.tipo === 'imagen') {
+                html += `<p style="margin-bottom:15px;">${datos.textoAlternativo}</p>`;
+                html += `<img src="${datos.contenido}" style="max-width:100%; border-radius:15px;">`;
+            }
+            
+            contenedor.innerHTML = html;
+            document.body.appendChild(contenedor);
+            mensajeActual = contenedor;
+            
+            if (datos.tipo === 'video') {
+                setTimeout(() => {
+                    videoActual = document.getElementById('video-reproduccion');
+                }, 100);
+            }
+        }
+        
         window.detenerVideoActual = detenerVideoActual;
         
+        // --- RAYCASTER ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
         function handleClick(event) {
-            // Calcular coordenadas normalizadas
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -776,32 +813,8 @@
             if (intersects.length > 0) {
                 const objeto = intersects[0].object;
                 const datos = objeto.userData;
-                const mensajeDiv = document.getElementById('mensaje');
                 
-                detenerVideoActual();
-                
-                let html = '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\'); detenerVideoActual();">✕</div>';
-                
-                if (datos.tipo === 'video') {
-                    html += `<p style="margin:0 0 10px;">🎬</p>`;
-                    html += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
-                    // IMPORTANTE: Video MUTEADO para no interferir con la música
-                    html += `<video id="video-reproduccion" muted controls playsinline style="width:100%; border-radius:15px;" src="${datos.archivo}"></video>`;
-                } else if (datos.tipo === 'texto') {
-                    html += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
-                } else if (datos.tipo === 'imagen') {
-                    html += `<p style="margin-bottom:15px;">${datos.textoAlternativo}</p>`;
-                    html += `<img src="${datos.contenido}" style="max-width:100%; border-radius:15px;">`;
-                }
-                
-                mensajeDiv.innerHTML = html;
-                mensajeDiv.classList.add('visible');
-                
-                if (datos.tipo === 'video') {
-                    setTimeout(() => {
-                        videoActual = document.getElementById('video-reproduccion');
-                    }, 100);
-                }
+                mostrarMensaje(datos);
             }
         }
         
