@@ -304,7 +304,7 @@
 </head>
 <body>
     <div id="info">✨ Nebulosa de los Recuerdos (Dale un click) | Para ti ✨</div>
-    <div id="zoom-indicator">⭐ TOCA CUALQUIER LUGAR PARA ACTIVAR LA MÚSICA ⭐</div>
+    <div id="zoom-indicator">⭐ TOCA CUALQUIER LUGAR PARA ACTIVAR LA MÚSICA O DALE PLAY ⭐</div>
     
     <div id="music-player">
         <div class="toggle-player" id="toggle-player">🔽</div>
@@ -605,7 +605,7 @@
         audio.loop = false;
         
         function updateSongDisplay() {
-            const text = `Canción ${currentSongIndex + 1} de ${songs.length}`;
+            const text = `Canción ${currentSongIndex + 1} de ${songs.length} (Dale play)`;
             document.getElementById('current-song').textContent = text;
             document.getElementById('now-playing-mini').textContent = text;
         }
