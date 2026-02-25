@@ -14,11 +14,11 @@
             margin: 0;
             overflow: hidden;
             font-family: 'Arial', sans-serif;
-            touch-action: manipulation; /* Mejora la respuesta táctil */
+            touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
         }
         
-        /* ELEMENTOS FLOTANTES - VERSIÓN RESPONSIVE */
+        /* ELEMENTOS FLOTANTES */
         #info {
             position: absolute;
             top: 10px;
@@ -72,51 +72,121 @@
             z-index: 10;
         }
         
-        /* REPRODUCTOR DE MÚSICA - VERSIÓN RESPONSIVE */
+        /* ===== REPRODUCTOR DE MÚSICA MINIMIZABLE ===== */
         #music-player {
             position: absolute;
             top: 10px;
             right: 10px;
-            background: rgba(20, 5, 30, 0.9);
+            background: rgba(20, 5, 30, 0.95);
             backdrop-filter: blur(10px);
             color: white;
-            padding: 12px;
-            border-radius: 16px;
+            border-radius: 30px;
             border: 1px solid rgba(255, 192, 203, 0.6);
             box-shadow: 0 0 20px rgba(255, 105, 180, 0.3);
             z-index: 100;
-            width: min(280px, calc(100% - 20px));
             pointer-events: auto;
-            max-width: 280px;
+            transition: all 0.3s ease;
+            overflow: hidden;
         }
         
-        @media (max-width: 600px) {
-            #music-player {
-                width: calc(100% - 20px);
-                max-width: none;
-                left: 10px;
-                right: 10px;
-                top: 10px;
-            }
-            
-            #info {
-                top: 120px; /* Debajo del reproductor en móvil */
-                left: 10px;
-                font-size: 11px;
-            }
-            
-            #zoom-indicator {
-                bottom: 120px;
-                font-size: 11px;
-            }
-            
-            .subtitulo {
-                bottom: 15px;
-                font-size: 9px;
-            }
+        /* Modo MINIMIZADO */
+        #music-player.minimized {
+            width: auto;
+            height: auto;
+            border-radius: 40px;
+            background: rgba(20, 5, 30, 0.8);
         }
         
-        #music-player .title {
+        #music-player.minimized .player-content {
+            display: none;
+        }
+        
+        #music-player.minimized .minimized-controls {
+            display: flex;
+        }
+        
+        /* Modo EXPANDIDO */
+        #music-player:not(.minimized) {
+            width: min(300px, calc(100% - 20px));
+            max-width: 300px;
+        }
+        
+        #music-player:not(.minimized) .player-content {
+            display: block;
+        }
+        
+        #music-player:not(.minimized) .minimized-controls {
+            display: none;
+        }
+        
+        /* Controles cuando está minimizado */
+        .minimized-controls {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 10px;
+        }
+        
+        .minimized-controls button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        
+        .minimized-controls button:active {
+            background: rgba(255,105,180,0.7);
+            transform: scale(0.95);
+        }
+        
+        .minimized-controls .now-playing {
+            font-size: 13px;
+            color: #ffccff;
+            max-width: 120px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* Botón para minimizar/expandir */
+        .toggle-player {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 101;
+            touch-action: manipulation;
+        }
+        
+        .toggle-player:active {
+            background: rgba(255,105,180,0.7);
+        }
+        
+        /* Contenido expandido */
+        .player-content {
+            padding: 20px 15px 15px 15px;
+        }
+        
+        .player-content .title {
             font-size: 14px;
             margin-bottom: 8px;
             text-align: center;
@@ -124,14 +194,24 @@
             font-weight: bold;
         }
         
-        #music-player .controls {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
+        .player-content .song-info {
+            font-size: 13px;
+            text-align: center;
             margin-bottom: 8px;
+            color: #ffccff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
-        #music-player button {
+        .player-content .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .player-content .controls button {
             background: rgba(255,255,255,0.2);
             border: 1px solid rgba(255,255,255,0.3);
             color: white;
@@ -145,36 +225,23 @@
             justify-content: center;
             transition: all 0.2s;
             touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
         }
         
-        #music-player button:active {
+        .player-content .controls button:active {
             background: rgba(255,105,180,0.7);
             transform: scale(0.95);
         }
         
-        #music-player .song-info {
-            font-size: 13px;
-            text-align: center;
-            margin-bottom: 8px;
-            color: #ffccff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            padding: 0 5px;
-        }
-        
-        #music-player .progress {
+        .player-content .progress {
             width: 100%;
             height: 6px;
             background: rgba(255,255,255,0.2);
             border-radius: 6px;
             margin-bottom: 5px;
             cursor: pointer;
-            touch-action: manipulation;
         }
         
-        #music-player .progress-bar {
+        .player-content .progress-bar {
             width: 0%;
             height: 100%;
             background: hotpink;
@@ -182,7 +249,7 @@
             transition: width 0.1s linear;
         }
         
-        #music-player .time {
+        .player-content .time {
             display: flex;
             justify-content: space-between;
             font-size: 11px;
@@ -190,33 +257,51 @@
             margin-bottom: 8px;
         }
         
-        #music-player .volume {
+        .player-content .volume {
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        #music-player .volume span {
+        .player-content .volume span {
             font-size: 14px;
         }
         
-        #music-player .volume-slider {
+        .player-content .volume-slider {
             flex: 1;
             height: 6px;
             background: rgba(255,255,255,0.2);
             border-radius: 6px;
             cursor: pointer;
-            touch-action: manipulation;
         }
         
-        #music-player .volume-bar {
+        .player-content .volume-bar {
             width: 70%;
             height: 100%;
             background: hotpink;
             border-radius: 6px;
         }
         
-        /* MENSAJE EMERGENTE - VERSIÓN RESPONSIVE */
+        /* Ajuste para móvil */
+        @media (max-width: 600px) {
+            #music-player:not(.minimized) {
+                width: calc(100% - 20px);
+                max-width: none;
+                left: 10px;
+                right: 10px;
+                top: 10px;
+            }
+            
+            #info {
+                top: 130px;
+            }
+            
+            #zoom-indicator {
+                bottom: 120px;
+            }
+        }
+        
+        /* MENSAJE EMERGENTE */
         #mensaje {
             position: absolute;
             bottom: 20px;
@@ -242,21 +327,6 @@
             border-left: 5px solid hotpink;
             pointer-events: auto;
             -webkit-overflow-scrolling: touch;
-        }
-        
-        @media (max-width: 600px) {
-            #mensaje {
-                bottom: 10px;
-                padding: 15px;
-                width: calc(100% - 20px);
-                max-height: 60vh;
-                font-size: 14px;
-            }
-            
-            #mensaje img, #mensaje video {
-                max-width: 100%;
-                max-height: 200px;
-            }
         }
         
         #mensaje.visible {
@@ -294,37 +364,46 @@
         #cerrar-mensaje:active {
             background: rgba(255,105,180,0.7);
         }
-        
-        /* Clase para deshabilitar interacción durante carga */
-        .loading * {
-            pointer-events: none !important;
-        }
     </style>
 </head>
-<body class="loading">
+<body>
     <div id="info">✨ Nebulosa de los Recuerdos | Para ti ✨</div>
     <div id="zoom-indicator">⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐</div>
     
-    <!-- Reproductor de música -->
+    <!-- Reproductor de música MINIMIZABLE -->
     <div id="music-player">
-        <div class="title">🎵 Música de fondo</div>
-        <div class="song-info" id="current-song">Canción 1 de 10</div>
-        <div class="controls">
-            <button id="prev-song" title="Anterior">⏮</button>
-            <button id="play-pause" title="Reproducir/Pausa">⏸</button>
-            <button id="next-song" title="Siguiente">⏭</button>
+        <!-- Botón para minimizar/expandir -->
+        <div class="toggle-player" id="toggle-player">🔽</div>
+        
+        <!-- Controles cuando está minimizado -->
+        <div class="minimized-controls">
+            <button id="prev-song-mini" title="Anterior">⏮</button>
+            <button id="play-pause-mini" title="Reproducir/Pausa">⏸</button>
+            <button id="next-song-mini" title="Siguiente">⏭</button>
+            <span class="now-playing" id="now-playing-mini">Canción 1 de 10</span>
         </div>
-        <div class="progress" id="progress-bar">
-            <div class="progress-bar" id="progress-fill"></div>
-        </div>
-        <div class="time">
-            <span id="current-time">0:00</span>
-            <span id="total-time">0:00</span>
-        </div>
-        <div class="volume">
-            <span>🔊</span>
-            <div class="volume-slider" id="volume-slider">
-                <div class="volume-bar" id="volume-bar" style="width:70%"></div>
+        
+        <!-- Contenido expandido -->
+        <div class="player-content">
+            <div class="title">🎵 Música de fondo</div>
+            <div class="song-info" id="current-song">Canción 1 de 10</div>
+            <div class="controls">
+                <button id="prev-song" title="Anterior">⏮</button>
+                <button id="play-pause" title="Reproducir/Pausa">⏸</button>
+                <button id="next-song" title="Siguiente">⏭</button>
+            </div>
+            <div class="progress" id="progress-bar">
+                <div class="progress-bar" id="progress-fill"></div>
+            </div>
+            <div class="time">
+                <span id="current-time">0:00</span>
+                <span id="total-time">0:00</span>
+            </div>
+            <div class="volume">
+                <span>🔊</span>
+                <div class="volume-slider" id="volume-slider">
+                    <div class="volume-bar" id="volume-bar" style="width:70%"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -345,7 +424,7 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- REPRODUCTOR DE MÚSICA (CORREGIDO) ---
+        // --- REPRODUCTOR DE MÚSICA ---
         const songs = [
             'cancion1.mp3',
             'cancion2.mp3',
@@ -360,19 +439,27 @@
         ];
         
         let currentSongIndex = 0;
-        let isPlaying = true; // Inicia en true
+        let isPlaying = true;
         const audio = new Audio();
-        audio.loop = false; // Nosotros manejamos el bucle
+        audio.loop = false;
+        
+        // Función para actualizar todos los displays de canción
+        function updateSongDisplay() {
+            const songText = `Canción ${currentSongIndex + 1} de ${songs.length}`;
+            document.getElementById('current-song').textContent = songText;
+            document.getElementById('now-playing-mini').textContent = songText;
+        }
         
         function loadSong(index) {
             audio.src = songs[index];
             audio.load();
-            document.getElementById('current-song').textContent = `Canción ${index + 1} de 10`;
+            updateSongDisplay();
             if (isPlaying) {
                 audio.play().catch(e => {
-                    console.log('Auto-play bloqueado, esperando interacción');
+                    console.log('Auto-play bloqueado');
                     isPlaying = false;
                     document.getElementById('play-pause').textContent = '▶';
+                    document.getElementById('play-pause-mini').textContent = '▶';
                 });
             }
         }
@@ -393,48 +480,66 @@
         });
         
         audio.addEventListener('ended', () => {
-            // Pasar a la siguiente canción automáticamente (bucle infinito)
             currentSongIndex = (currentSongIndex + 1) % songs.length;
             loadSong(currentSongIndex);
         });
         
-        // Cargar primera canción e intentar reproducir
+        // Cargar primera canción
         loadSong(0);
         
-        // Si el auto-play falla, esperar interacción del usuario
-        document.addEventListener('click', function initAudio() {
-            if (!isPlaying && audio.paused) {
-                audio.play().then(() => {
-                    isPlaying = true;
-                    document.getElementById('play-pause').textContent = '⏸';
-                }).catch(e => console.log('Error al reproducir:', e));
-            }
-            document.removeEventListener('click', initAudio);
-        }, { once: true });
-        
-        // Controles del reproductor
-        document.getElementById('play-pause').addEventListener('click', (e) => {
-            e.stopPropagation();
+        // Función para toggle play/pause
+        function togglePlay() {
             if (isPlaying) {
                 audio.pause();
                 document.getElementById('play-pause').textContent = '▶';
+                document.getElementById('play-pause-mini').textContent = '▶';
             } else {
                 audio.play();
                 document.getElementById('play-pause').textContent = '⏸';
+                document.getElementById('play-pause-mini').textContent = '⏸';
             }
             isPlaying = !isPlaying;
+        }
+        
+        // Controles principales
+        document.getElementById('play-pause').addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlay();
         });
+        
+        document.getElementById('play-pause-mini').addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlay();
+        });
+        
+        function nextSong() {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(currentSongIndex);
+        }
+        
+        function prevSong() {
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            loadSong(currentSongIndex);
+        }
         
         document.getElementById('next-song').addEventListener('click', (e) => {
             e.stopPropagation();
-            currentSongIndex = (currentSongIndex + 1) % songs.length;
-            loadSong(currentSongIndex);
+            nextSong();
+        });
+        
+        document.getElementById('next-song-mini').addEventListener('click', (e) => {
+            e.stopPropagation();
+            nextSong();
         });
         
         document.getElementById('prev-song').addEventListener('click', (e) => {
             e.stopPropagation();
-            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-            loadSong(currentSongIndex);
+            prevSong();
+        });
+        
+        document.getElementById('prev-song-mini').addEventListener('click', (e) => {
+            e.stopPropagation();
+            prevSong();
         });
         
         document.getElementById('progress-bar').addEventListener('click', (e) => {
@@ -456,11 +561,28 @@
             document.getElementById('volume-bar').style.width = (percentage * 100) + '%';
         });
         
-        // --- CONFIGURACIÓN 3D (MEJORADA PARA MÓVIL) ---
+        // --- FUNCIONALIDAD MINIMIZAR/EXPANDIR ---
+        const musicPlayer = document.getElementById('music-player');
+        const toggleBtn = document.getElementById('toggle-player');
+        let isMinimized = false;
+        
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMinimized = !isMinimized;
+            
+            if (isMinimized) {
+                musicPlayer.classList.add('minimized');
+                toggleBtn.textContent = '⬆️'; // Flecha hacia arriba para expandir
+            } else {
+                musicPlayer.classList.remove('minimized');
+                toggleBtn.textContent = '🔽'; // Flecha hacia abajo para minimizar
+            }
+        });
+        
+        // --- CONFIGURACIÓN 3D ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
-        // Ajustar cámara según dispositivo
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const cameraDistance = isMobile ? 24 : 22;
         
@@ -485,7 +607,6 @@
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // Mejorar precisión táctil
         if (isMobile) {
             controls.touches = {
                 ONE: THREE.TOUCH.ROTATE,
@@ -568,11 +689,6 @@
         const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.06, sizeAttenuation: true, blending: THREE.AdditiveBlending });
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
-        
-        // Quitar clase loading cuando todo esté listo
-        setTimeout(() => {
-            document.body.classList.remove('loading');
-        }, 1000);
         
         // ===== FUNCIÓN PARA GENERAR POSICIONES =====
         function generarPosiciones(cantidad, radioMin, radioMax, excluir = []) {
@@ -772,9 +888,9 @@
         const posicionesVideos = generarPosiciones(6, 9, 13, [...posicionesNebulosasArray, ...posicionesEstrellas]);
         
         const videosInfo = [
-            { archivo: 'video1.MP4', texto: '🎬 El universo está de fiesta ', color: 0xffaa66 },
+            { archivo: 'video1.MP4', texto: '🎬 Tal vez no pueda estar a tu lado en este momento pero espero algun día poder estarlo, felicidades y espero que sea un dia maravillos para ti.', color: 0xffaa66 },
             { archivo: 'video2.mp4', texto: '🎬 Doy gracias cada día por haberte conocido y pido perdon por haberte fallado.', color: 0xff66cc },
-            { archivo: 'video3.mp4', texto: '🎬 Tal vez no pueda estar a tu lado en este momento pero espero algun día poder estarlo, felicidades y espero que sea un dia maravillos para ti.', color: 0x66ffcc },
+            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc },
             { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff },
             { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88 },
             { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff }
@@ -810,7 +926,7 @@
             scene.add(pointLight);
         });
         
-        // --- RAYCASTER PARA CLICS (MEJORADO PARA MÓVIL) ---
+        // --- RAYCASTER PARA CLICS ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let videoActual = null;
@@ -826,10 +942,8 @@
         window.detenerVideoActual = detenerVideoActual;
         
         function handleInteraction(event) {
-            // Prevenir comportamiento por defecto en móvil
             event.preventDefault();
             
-            // Calcular coordenadas normalizadas
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
             const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -885,7 +999,6 @@
             }
         }
         
-        // Event listeners para click y touch
         renderer.domElement.addEventListener('click', handleInteraction);
         renderer.domElement.addEventListener('touchstart', handleInteraction, { passive: false });
         
