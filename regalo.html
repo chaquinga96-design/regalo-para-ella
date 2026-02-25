@@ -114,11 +114,131 @@
             50% { opacity: 1; }
             100% { opacity: 0.7; }
         }
+        
+        /* Reproductor de música */
+        #music-player {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(20, 5, 30, 0.85);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 192, 203, 0.6);
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.3);
+            z-index: 100;
+            width: 280px;
+            pointer-events: auto;
+        }
+        #music-player .title {
+            font-size: 16px;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #ff99cc;
+            font-weight: bold;
+        }
+        #music-player .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        #music-player button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        #music-player button:hover {
+            background: rgba(255,105,180,0.5);
+            border-color: hotpink;
+            transform: scale(1.1);
+        }
+        #music-player .song-info {
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #ffccff;
+        }
+        #music-player .progress {
+            width: 100%;
+            height: 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        #music-player .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: hotpink;
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+        #music-player .time {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #aaa;
+        }
+        #music-player .volume {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        #music-player .volume-slider {
+            flex: 1;
+            height: 5px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #music-player .volume-bar {
+            width: 70%;
+            height: 100%;
+            background: hotpink;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="info">✨ Nebulosa de los Recuerdos | Para ti ✨</div>
     <div id="zoom-indicator">⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐</div>
+    
+    <!-- Reproductor de música -->
+    <div id="music-player">
+        <div class="title">🎵 Música de fondo</div>
+        <div class="song-info" id="current-song">Canción 1 de 3</div>
+        <div class="controls">
+            <button id="prev-song" title="Anterior">⏮</button>
+            <button id="play-pause" title="Reproducir/Pausa">▶</button>
+            <button id="next-song" title="Siguiente">⏭</button>
+        </div>
+        <div class="progress" id="progress-bar">
+            <div class="progress-bar" id="progress-fill"></div>
+        </div>
+        <div class="time">
+            <span id="current-time">0:00</span>
+            <span id="total-time">0:00</span>
+        </div>
+        <div class="volume">
+            <span>🔊</span>
+            <div class="volume-slider" id="volume-slider">
+                <div class="volume-bar" id="volume-bar" style="width:70%"></div>
+            </div>
+        </div>
+    </div>
+    
     <div id="mensaje"></div>
     <div class="subtitulo">Con todo mi cariño 💫</div>
 
@@ -135,51 +255,137 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- CONFIGURACIÓN INICIAL ---
+        // --- REPRODUCTOR DE MÚSICA ---
+        const songs = [
+            'cancion1.mp3',
+            'cancion2.mp3',
+            'cancion3.mp3'
+        ];
+        
+        let currentSongIndex = 0;
+        let isPlaying = false;
+        const audio = new Audio();
+        audio.loop = false; // Nosotros manejamos el bucle manualmente
+        
+        function loadSong(index) {
+            audio.src = songs[index];
+            audio.load();
+            document.getElementById('current-song').textContent = `Canción ${index + 1} de 3`;
+            if (isPlaying) {
+                audio.play();
+            }
+        }
+        
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Event listeners para el reproductor
+        audio.addEventListener('timeupdate', () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+            document.getElementById('current-time').textContent = formatTime(audio.currentTime);
+            document.getElementById('total-time').textContent = formatTime(audio.duration);
+        });
+        
+        audio.addEventListener('ended', () => {
+            // Pasar a la siguiente canción automáticamente
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(currentSongIndex);
+        });
+        
+        // Controles del reproductor
+        document.getElementById('play-pause').addEventListener('click', () => {
+            if (isPlaying) {
+                audio.pause();
+                document.getElementById('play-pause').textContent = '▶';
+            } else {
+                if (!audio.src) loadSong(0);
+                audio.play();
+                document.getElementById('play-pause').textContent = '⏸';
+            }
+            isPlaying = !isPlaying;
+        });
+        
+        document.getElementById('next-song').addEventListener('click', () => {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(currentSongIndex);
+            if (isPlaying) audio.play();
+        });
+        
+        document.getElementById('prev-song').addEventListener('click', () => {
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            loadSong(currentSongIndex);
+            if (isPlaying) audio.play();
+        });
+        
+        document.getElementById('progress-bar').addEventListener('click', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            const percentage = x / width;
+            audio.currentTime = percentage * audio.duration;
+        });
+        
+        document.getElementById('volume-slider').addEventListener('click', (e) => {
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const width = rect.width;
+            const percentage = x / width;
+            audio.volume = percentage;
+            document.getElementById('volume-bar').style.width = (percentage * 100) + '%';
+        });
+        
+        // Cargar primera canción
+        loadSong(0);
+        
+        // --- CONFIGURACIÓN 3D ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x050510);
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 3, 20);
+        camera.position.set(0, 3, 22);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ReinhardToneMapping;
-        renderer.toneMappingExposure = 1.0; // Exposición normal
+        renderer.toneMappingExposure = 1.2;
         document.body.appendChild(renderer.domElement);
         
-        // --- CONTROLES ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.autoRotate = true;
-        controls.autoRotateSpeed = 0.4;
+        controls.autoRotateSpeed = 0.35;
         controls.enableZoom = true;
         controls.maxDistance = 35;
-        controls.minDistance = 4;
+        controls.minDistance = 5;
         controls.enablePan = false;
         controls.target.set(0, 0, 0);
         
-        // --- LUCES (MUY SUTILES para no afectar las imágenes) ---
+        // --- LUCES (solo afectan a nebulosas, NO a imágenes) ---
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         
-        // Luces muy tenues para crear ambiente sin sobreexponer
-        const light1 = new THREE.PointLight(0xff4da6, 0.3, 30);
-        light1.position.set(5, 3, 5);
+        // Luces de colores para ambiente
+        const light1 = new THREE.PointLight(0xff4da6, 0.8, 30);
+        light1.position.set(6, 4, 6);
         scene.add(light1);
         
-        const light2 = new THREE.PointLight(0x4da6ff, 0.3, 30);
-        light2.position.set(-5, -2, 5);
+        const light2 = new THREE.PointLight(0x4da6ff, 0.8, 30);
+        light2.position.set(-6, -3, 6);
         scene.add(light2);
         
-        const light3 = new THREE.PointLight(0xaa88ff, 0.3, 30);
-        light3.position.set(3, 4, -5);
+        const light3 = new THREE.PointLight(0xaa88ff, 0.8, 30);
+        light3.position.set(4, 5, -6);
         scene.add(light3);
         
-        // --- PARTÍCULAS DE FONDO (nebulosa) ---
-        const particleCount = 4000;
+        // --- PARTÍCULAS DE FONDO (con brillo) ---
+        const particleCount = 5000;
         const particlesGeo = new THREE.BufferGeometry();
         const positions = new Float32Array(particleCount * 3);
         const colors = new Float32Array(particleCount * 3);
@@ -187,7 +393,7 @@
         const color = new THREE.Color();
         
         for (let i = 0; i < particleCount; i++) {
-            const radius = 10 + Math.random() * 8;
+            const radius = 12 + Math.random() * 10;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos((Math.random() * 2) - 1);
             
@@ -211,7 +417,7 @@
         particlesGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
         
         const particlesMat = new THREE.PointsMaterial({
-            size: 0.1,
+            size: 0.12,
             vertexColors: true,
             blending: THREE.AdditiveBlending,
             transparent: true,
@@ -222,11 +428,11 @@
         const particles = new THREE.Points(particlesGeo, particlesMat);
         scene.add(particles);
         
-        // Estrellas de fondo (blancas)
+        // Estrellas de fondo (blancas) con brillo
         const starsGeo = new THREE.BufferGeometry();
-        const starsPos = new Float32Array(1000 * 3);
-        for (let i = 0; i < 1000; i++) {
-            const r = 18 + Math.random() * 12;
+        const starsPos = new Float32Array(1500 * 3);
+        for (let i = 0; i < 1500; i++) {
+            const r = 20 + Math.random() * 15;
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos((Math.random() * 2) - 1);
             starsPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
@@ -234,204 +440,241 @@
             starsPos[i*3+2] = r * Math.cos(phi);
         }
         starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.04, sizeAttenuation: true, blending: THREE.AdditiveBlending });
+        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.06, sizeAttenuation: true, blending: THREE.AdditiveBlending });
         const stars = new THREE.Points(starsGeo, starsMat);
         scene.add(stars);
         
-        // ===== NEBULOSAS (textos y fotos con clic) REORGANIZADAS =====
-        // Distribuidas en un radio de 5-7 unidades con separación clara
-        
-        const recuerdos = [
-            // Textos - en posiciones bien separadas
-            { 
-                tipo: 'texto', 
-                contenido: '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨', 
-                posicion: [5.5, 2.5, 3.0], 
-                color: 0xff66b2 
-            },
-            { 
-                tipo: 'texto', 
-                contenido: '💫 Que la vida te mime tanto como tú mereces 💫', 
-                posicion: [-5.0, -2.0, 4.5], 
-                color: 0x66b2ff 
-            },
-            { 
-                tipo: 'texto', 
-                contenido: '❤️ Tu risa es lo que más extraño ❤️', 
-                posicion: [2.5, 3.5, -4.0], 
-                color: 0xcc66ff 
-            },
-            { 
-                tipo: 'texto', 
-                contenido: '🌌 Eres mi persona favorita en el universo 🌌', 
-                posicion: [-4.0, -3.0, -4.0], 
-                color: 0xffaa88 
-            },
-            { 
-                tipo: 'texto', 
-                contenido: 'No te alejes por favor.', 
-                posicion: [4.0, -1.5, -5.0], 
-                color: 0xff66cc 
-            },
-            // Imágenes (fotos con clic)
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto1.JPEG', 
-                textoAlternativo: 'Nuestra primera salida de pareja',
-                posicion: [6.0, -1.2, -3.0], 
-                color: 0xffaa88 
-            },
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto2.jpg',
-                textoAlternativo: '¡Feliz día!',
-                posicion: [-5.5, 2.8, 2.5], 
-                color: 0x88aaff 
-            },
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto3.jpg',
-                textoAlternativo: 'Brilla hoy como nunca, es tu día',
-                posicion: [3.2, -3.0, 5.0], 
-                color: 0xff88aa 
-            },
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto4.jpg',
-                textoAlternativo: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!',
-                posicion: [-3.0, 4.0, -4.8],
-                color: 0xff66cc 
-            },
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto5.jpg',
-                textoAlternativo: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!',
-                posicion: [4.5, -3.2, -4.0],
-                color: 0xff66cc 
-            },
-            { 
-                tipo: 'imagen', 
-                contenido: 'foto6.jpg',
-                textoAlternativo: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.',
-                posicion: [-6.2, 2.0, 4.2],
-                color: 0xff66cc 
+        // ===== FUNCIÓN PARA GENERAR POSICIONES DISTRIBUIDAS UNIFORMEMENTE =====
+        function generarPosiciones(cantidad, radioMin, radioMax, excluir = []) {
+            const posiciones = [];
+            const intentosMax = 1000;
+            
+            for (let i = 0; i < cantidad; i++) {
+                let intentos = 0;
+                let valida = false;
+                let nuevaPos;
+                
+                while (!valida && intentos < intentosMax) {
+                    // Generar posición en esfera
+                    const u = Math.random();
+                    const v = Math.random();
+                    const w = Math.random();
+                    
+                    const theta = 2 * Math.PI * u;
+                    const phi = Math.acos(2 * v - 1);
+                    const r = radioMin + Math.random() * (radioMax - radioMin);
+                    
+                    const x = r * Math.sin(phi) * Math.cos(theta);
+                    const y = r * Math.sin(phi) * Math.sin(theta) * 0.6;
+                    const z = r * Math.cos(phi);
+                    
+                    nuevaPos = [x, y, z];
+                    
+                    // Verificar distancia con posiciones existentes
+                    valida = true;
+                    for (let j = 0; j < posiciones.length; j++) {
+                        const dx = nuevaPos[0] - posiciones[j][0];
+                        const dy = nuevaPos[1] - posiciones[j][1];
+                        const dz = nuevaPos[2] - posiciones[j][2];
+                        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                        
+                        if (dist < 3.0) { // Distancia mínima entre objetos
+                            valida = false;
+                            break;
+                        }
+                    }
+                    
+                    // Verificar distancia con posiciones excluidas
+                    if (valida) {
+                        for (let j = 0; j < excluir.length; j++) {
+                            const dx = nuevaPos[0] - excluir[j][0];
+                            const dy = nuevaPos[1] - excluir[j][1];
+                            const dz = nuevaPos[2] - excluir[j][2];
+                            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+                            
+                            if (dist < 3.0) {
+                                valida = false;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    intentos++;
+                }
+                
+                if (valida) {
+                    posiciones.push(nuevaPos);
+                } else {
+                    // Si no encontramos posición válida, poner en el borde
+                    const theta = 2 * Math.PI * Math.random();
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const r = radioMax - 1;
+                    const x = r * Math.sin(phi) * Math.cos(theta);
+                    const y = r * Math.sin(phi) * Math.sin(theta) * 0.6;
+                    const z = r * Math.cos(phi);
+                    posiciones.push([x, y, z]);
+                }
             }
+            
+            return posiciones;
+        }
+        
+        // ===== GENERAR POSICIONES PARA NEBULOSAS =====
+        const numNebulosas = 11; // 5 textos + 6 imágenes
+        const posicionesNebulosas = generarPosiciones(numNebulosas, 6, 9);
+        
+        // ===== NEBULOSAS (con brillo) =====
+        const textos = [
+            '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨',
+            '💫 Que la vida te mime tanto como tú mereces 💫',
+            '❤️ Tu risa es lo que más extraño ❤️',
+            '🌌 Eres mi persona favorita en el universo 🌌',
+            'No te alejes por favor.'
+        ];
+        
+        const imagenesNebulosas = [
+            { archivo: 'foto1.JPEG', texto: 'Nuestra primera salida de pareja' },
+            { archivo: 'foto2.jpg', texto: '¡Feliz día!' },
+            { archivo: 'foto3.jpg', texto: 'Brilla hoy como nunca, es tu día' },
+            { archivo: 'foto4.jpg', texto: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!' },
+            { archivo: 'foto5.jpg', texto: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!' },
+            { archivo: 'foto6.jpg', texto: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.' }
+        ];
+        
+        const coloresNebulosas = [
+            0xff66b2, 0x66b2ff, 0xcc66ff, 0xffaa88, 0xff66cc,
+            0xffaa88, 0x88aaff, 0xff88aa, 0xff66cc, 0xff66cc, 0xff66cc
         ];
         
         const esferas = [];
         
-        recuerdos.forEach((data) => {
-            const geometry = new THREE.SphereGeometry(0.6, 32, 32);
-            
+        // Textos (primeras 5)
+        for (let i = 0; i < 5; i++) {
+            const pos = posicionesNebulosas[i];
+            const geometry = new THREE.SphereGeometry(0.65, 32, 32);
             const material = new THREE.MeshStandardMaterial({
-                color: data.color,
-                emissive: data.color,
-                emissiveIntensity: 0.3, // Brillo reducido
-                roughness: 0.4,
+                color: coloresNebulosas[i],
+                emissive: coloresNebulosas[i],
+                emissiveIntensity: 0.4,
+                roughness: 0.3,
                 metalness: 0.1
             });
             
             const esfera = new THREE.Mesh(geometry, material);
-            esfera.position.set(data.posicion[0], data.posicion[1], data.posicion[2]);
+            esfera.position.set(pos[0], pos[1], pos[2]);
             
             esfera.userData = {
-                tipo: data.tipo,
-                contenido: data.contenido,
-                textoAlternativo: data.textoAlternativo || ''
+                tipo: 'texto',
+                contenido: textos[i]
             };
             
             scene.add(esfera);
             esferas.push(esfera);
             
-            // Luces muy sutiles alrededor de las nebulosas
-            const pointLight = new THREE.PointLight(data.color, 0.4, 6);
-            pointLight.position.set(data.posicion[0], data.posicion[1], data.posicion[2]);
+            const pointLight = new THREE.PointLight(coloresNebulosas[i], 0.6, 7);
+            pointLight.position.set(pos[0], pos[1], pos[2]);
             scene.add(pointLight);
-        });
+        }
         
-        // ===== ESTRELLAS MÁGICAS CON IMÁGENES REALES (SIN NINGÚN BRILLO) =====
-        // Distribuidas en un radio más amplio (7-9 unidades)
-        
-        const estrellasMagicas = [
-            { archivo: 'foto7.jpg', posicion: [8.0, 3.5, 5.5] },
-            { archivo: 'foto8.jpg', posicion: [-7.5, -3.0, 6.0] },
-            { archivo: 'foto9.jpg', posicion: [6.5, 5.0, -5.5] },
-            { archivo: 'foto10.jpg', posicion: [-6.0, -4.5, 7.0] },
-            { archivo: 'foto11.jpg', posicion: [7.0, -3.5, -6.5] },
-            { archivo: 'foto12.jpg', posicion: [-5.5, 5.5, 5.0] },
-            { archivo: 'foto13.jpg', posicion: [5.0, -5.0, 6.5] },
-            { archivo: 'foto14.jpg', posicion: [-7.0, 4.0, -6.0] },
-            { archivo: 'foto15.jpg', posicion: [6.2, -2.5, -7.0] },
-            { archivo: 'foto16.jpg', posicion: [-4.8, 6.0, 4.5] },
-            { archivo: 'foto17.jpg', posicion: [7.5, 3.8, -5.0] },
-            { archivo: 'foto18.jpg', posicion: [-4.5, -5.2, 6.8] },
-            { archivo: 'foto19.jpg', posicion: [5.8, 5.2, -5.8] },
-            { archivo: 'foto20.jpg', posicion: [-7.2, -2.5, 5.5] }
-        ];
-        
-        const textureLoader = new THREE.TextureLoader();
-        
-        estrellasMagicas.forEach((estrella) => {
-            textureLoader.load(
-                estrella.archivo,
-                (texture) => {
-                    // IMPORTANTE: Configuración para imagen PERFECTA sin alteraciones
-                    texture.minFilter = THREE.LinearFilter;
-                    texture.magFilter = THREE.LinearFilter;
-                    
-                    const material = new THREE.SpriteMaterial({ 
-                        map: texture,
-                        transparent: false,
-                        blending: THREE.NormalBlending, // Modo normal, sin mezclas
-                        depthTest: true,
-                        depthWrite: true,
-                        sizeAttenuation: true,
-                        color: 0xffffff, // Color blanco puro para no alterar la imagen
-                        opacity: 1.0
-                    });
-                    
-                    const sprite = new THREE.Sprite(material);
-                    sprite.position.set(
-                        estrella.posicion[0], 
-                        estrella.posicion[1], 
-                        estrella.posicion[2]
-                    );
-                    
-                    sprite.scale.set(2.5, 2.5, 1);
-                    
-                    scene.add(sprite);
-                    console.log(`✅ Imagen cargada: ${estrella.archivo}`);
-                },
-                undefined,
-                (err) => {
-                    console.warn(`❌ Error cargando: ${estrella.archivo}`);
-                }
-            );
-        });
-        
-        // ===== VIDEOS (con control de audio al cerrar) =====
-        const estrellasVideo = [
-            { archivo: 'video1.MP4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66, posicion: [7.0, -4.8, -5.5] },
-            { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc, posicion: [-6.8, 5.2, -5.0] },
-            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc, posicion: [5.2, -5.5, 6.0] },
-            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff, posicion: [-6.0, 5.8, 4.5] },
-            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88, posicion: [7.2, 4.0, -6.0] },
-            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff, posicion: [-6.2, -5.0, 6.2] }
-        ];
-        
-        const objetosMagicos = [];
-        
-        estrellasVideo.forEach((video) => {
-            const geometry = new THREE.SphereGeometry(0.6, 24, 24);
+        // Imágenes de nebulosas (siguientes 6)
+        for (let i = 0; i < 6; i++) {
+            const pos = posicionesNebulosas[i + 5];
+            const geometry = new THREE.SphereGeometry(0.65, 32, 32);
             const material = new THREE.MeshStandardMaterial({
-                color: video.color,
-                emissive: video.color,
+                color: coloresNebulosas[i + 5],
+                emissive: coloresNebulosas[i + 5],
                 emissiveIntensity: 0.4,
                 roughness: 0.3,
                 metalness: 0.1
             });
+            
+            const esfera = new THREE.Mesh(geometry, material);
+            esfera.position.set(pos[0], pos[1], pos[2]);
+            
+            esfera.userData = {
+                tipo: 'imagen',
+                contenido: imagenesNebulosas[i].archivo,
+                textoAlternativo: imagenesNebulosas[i].texto
+            };
+            
+            scene.add(esfera);
+            esferas.push(esfera);
+            
+            const pointLight = new THREE.PointLight(coloresNebulosas[i + 5], 0.6, 7);
+            pointLight.position.set(pos[0], pos[1], pos[2]);
+            scene.add(pointLight);
+        }
+        
+        // ===== GENERAR POSICIONES PARA ESTRELLAS MÁGICAS (IMÁGENES SIN BRILLO) =====
+        // Usamos las posiciones de nebulosas como exclusión
+        const posicionesNebulosasArray = posicionesNebulosas.map(p => [p[0], p[1], p[2]]);
+        const posicionesEstrellas = generarPosiciones(14, 8, 12, posicionesNebulosasArray);
+        
+        const estrellasMagicas = [
+            'foto7.jpg', 'foto8.jpg', 'foto9.jpg', 'foto10.jpg',
+            'foto11.jpg', 'foto12.jpg', 'foto13.jpg', 'foto14.jpg',
+            'foto15.jpg', 'foto16.jpg', 'foto17.jpg', 'foto18.jpg',
+            'foto19.jpg', 'foto20.jpg'
+        ];
+        
+        const textureLoader = new THREE.TextureLoader();
+        
+        estrellasMagicas.forEach((archivo, index) => {
+            textureLoader.load(
+                archivo,
+                (texture) => {
+                    // Material SIN NINGÚN BRILLO - solo la imagen pura
+                    const material = new THREE.SpriteMaterial({ 
+                        map: texture,
+                        transparent: false,
+                        blending: THREE.NormalBlending, // Modo normal, sin brillo
+                        depthTest: true,
+                        depthWrite: true,
+                        sizeAttenuation: true,
+                        color: 0xffffff // Color blanco puro
+                    });
+                    
+                    const sprite = new THREE.Sprite(material);
+                    const pos = posicionesEstrellas[index];
+                    sprite.position.set(pos[0], pos[1], pos[2]);
+                    sprite.scale.set(2.3, 2.3, 1);
+                    
+                    scene.add(sprite);
+                    console.log(`✅ Imagen cargada: ${archivo}`);
+                },
+                undefined,
+                (err) => {
+                    console.warn(`❌ Error cargando: ${archivo}`);
+                }
+            );
+        });
+        
+        // ===== VIDEOS (SIN SONIDO) =====
+        const posicionesVideos = generarPosiciones(6, 9, 13, [...posicionesNebulosasArray, ...posicionesEstrellas]);
+        
+        const videosInfo = [
+            { archivo: 'video1.mp4', texto: '🎬 Nuestro video especial 1', color: 0xffaa66 },
+            { archivo: 'video2.mp4', texto: '🎬 Video especial 2', color: 0xff66cc },
+            { archivo: 'video3.mp4', texto: '🎬 El universo está de fiesta', color: 0x66ffcc },
+            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff },
+            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88 },
+            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff }
+        ];
+        
+        const objetosMagicos = [];
+        
+        videosInfo.forEach((video, index) => {
+            const geometry = new THREE.SphereGeometry(0.7, 24, 24);
+            const material = new THREE.MeshStandardMaterial({
+                color: video.color,
+                emissive: video.color,
+                emissiveIntensity: 0.5,
+                roughness: 0.3,
+                metalness: 0.1
+            });
             const esferaVideo = new THREE.Mesh(geometry, material);
-            esferaVideo.position.set(video.posicion[0], video.posicion[1], video.posicion[2]);
+            const pos = posicionesVideos[index];
+            esferaVideo.position.set(pos[0], pos[1], pos[2]);
             
             esferaVideo.userData = {
                 tipo: 'video',
@@ -443,15 +686,15 @@
             scene.add(esferaVideo);
             objetosMagicos.push(esferaVideo);
             
-            const pointLight = new THREE.PointLight(video.color, 0.5, 6);
-            pointLight.position.set(video.posicion[0], video.posicion[1], video.posicion[2]);
+            const pointLight = new THREE.PointLight(video.color, 0.6, 7);
+            pointLight.position.set(pos[0], pos[1], pos[2]);
             scene.add(pointLight);
         });
         
-        // --- RAYCASTER PARA CLICS (CON CONTROL DE VIDEO) ---
+        // --- RAYCASTER PARA CLICS ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-        let videoActual = null; // Para controlar el video que se está reproduciendo
+        let videoActual = null;
         
         function detenerVideoActual() {
             if (videoActual) {
@@ -460,6 +703,8 @@
                 videoActual = null;
             }
         }
+        
+        window.detenerVideoActual = detenerVideoActual;
         
         function onClick(event) {
             mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
@@ -475,7 +720,6 @@
                 const datos = objeto.userData;
                 const mensajeDiv = document.getElementById('mensaje');
                 
-                // Detener cualquier video que se esté reproduciendo
                 detenerVideoActual();
                 
                 let contenidoHTML = '';
@@ -484,7 +728,8 @@
                 if (datos.tipo === 'video' && datos.esMagico) {
                     contenidoHTML += `<p style="margin:0; font-style:italic; margin-bottom:10px;">🎬</p>`;
                     contenidoHTML += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
-                    contenidoHTML += `<video id="video-reproduccion" controls style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
+                    // Video SIN SONIDO (muted)
+                    contenidoHTML += `<video id="video-reproduccion" muted controls style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
                 } 
                 else if (datos.tipo === 'texto') {
                     contenidoHTML += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
@@ -497,19 +742,17 @@
                 mensajeDiv.innerHTML = contenidoHTML;
                 mensajeDiv.classList.add('visible');
                 
-                // Si es video, guardar referencia y asegurar que se detenga al cerrar
                 if (datos.tipo === 'video' && datos.esMagico) {
                     setTimeout(() => {
                         videoActual = document.getElementById('video-reproduccion');
                     }, 100);
                 }
                 
-                // Efecto visual en la esfera clickeada
                 if (objeto.material.emissiveIntensity !== undefined) {
-                    objeto.material.emissiveIntensity = 1.0;
+                    objeto.material.emissiveIntensity = 1.2;
                     setTimeout(() => {
                         if (objeto.material.emissiveIntensity !== undefined) {
-                            objeto.material.emissiveIntensity = datos.tipo === 'video' ? 0.4 : 0.3;
+                            objeto.material.emissiveIntensity = 0.4;
                         }
                     }, 300);
                 }
@@ -517,9 +760,6 @@
         }
         
         window.addEventListener('click', onClick);
-        
-        // Hacer accesible la función para el botón de cerrar
-        window.detenerVideoActual = detenerVideoActual;
         
         // --- ANIMACIÓN ---
         function animate() {
@@ -529,7 +769,7 @@
             stars.rotation.y -= 0.00005;
             
             controls.update();
-            renderer.render(scene, camera); // Sin postprocesado para mantener colores puros
+            renderer.render(scene, camera);
         }
         
         animate();
