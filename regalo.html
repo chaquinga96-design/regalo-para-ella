@@ -5,6 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nebulosa de los Recuerdos ✨</title>
     <style>
+        /* LOADER - Nuevo */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 20, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+        #loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .loader-content {
+            text-align: center;
+            color: white;
+        }
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.2);
+            border-top-color: hotpink;
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loader-text {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .loader-subtext {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
         /* RESET Y ESTILOS BASE */
         * {
             box-sizing: border-box;
@@ -367,8 +412,17 @@
     </style>
 </head>
 <body>
+    <!-- LOADER -->
+    <div id="loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">Cargando la galaxia...</div>
+            <div class="loader-subtext">Preparando tus recuerdos ✨</div>
+        </div>
+    </div>
+
     <div id="info">✨ Nebulosa de los Recuerdos | Para ti ✨</div>
-    <div id="zoom-indicator">⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐</div>
+    <div id="zoom-indicator">⭐ TOCA CUALQUIER LUGAR PARA COMENZAR ⭐</div>
     
     <!-- Reproductor de música MINIMIZABLE -->
     <div id="music-player">
@@ -378,7 +432,7 @@
         <!-- Controles cuando está minimizado -->
         <div class="minimized-controls">
             <button id="prev-song-mini" title="Anterior">⏮</button>
-            <button id="play-pause-mini" title="Reproducir/Pausa">⏸</button>
+            <button id="play-pause-mini" title="Reproducir/Pausa">▶</button>
             <button id="next-song-mini" title="Siguiente">⏭</button>
             <span class="now-playing" id="now-playing-mini">Canción 1 de 10</span>
         </div>
@@ -389,7 +443,7 @@
             <div class="song-info" id="current-song">Canción 1 de 10</div>
             <div class="controls">
                 <button id="prev-song" title="Anterior">⏮</button>
-                <button id="play-pause" title="Reproducir/Pausa">⏸</button>
+                <button id="play-pause" title="Reproducir/Pausa">▶</button>
                 <button id="next-song" title="Siguiente">⏭</button>
             </div>
             <div class="progress" id="progress-bar">
@@ -424,7 +478,27 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         
-        // --- REPRODUCTOR DE MÚSICA ---
+        // ===== VARIABLES GLOBALES =====
+        let scene, camera, renderer, controls;
+        let particles, stars;
+        const esferas = [];
+        const objetosMagicos = [];
+        let videoActual = null;
+        let recursosCargados = 0;
+        const totalRecursos = 37; // Aproximado: partículas + estrellas + nebulosas + fotos + videos
+        
+        // Loader
+        const loader = document.getElementById('loader');
+        function recursoCargado() {
+            recursosCargados++;
+            if (recursosCargados >= totalRecursos) {
+                setTimeout(() => {
+                    loader.classList.add('hidden');
+                }, 800);
+            }
+        }
+        
+        // ===== REPRODUCTOR DE MÚSICA OPTIMIZADO =====
         const songs = [
             'cancion1.mp3',
             'cancion2.mp3',
@@ -439,30 +513,133 @@
         ];
         
         let currentSongIndex = 0;
-        let isPlaying = true;
+        let isPlaying = false; // No intentamos autoplay aún
+        let audioInicializado = false;
         const audio = new Audio();
         audio.loop = false;
+        audio.volume = 0.7;
         
-        // Función para actualizar todos los displays de canción
+        // Precargar primera canción
+        audio.preload = 'auto';
+        audio.src = songs[0];
+        audio.load();
+        
         function updateSongDisplay() {
             const songText = `Canción ${currentSongIndex + 1} de ${songs.length}`;
-            document.getElementById('current-song').textContent = songText;
-            document.getElementById('now-playing-mini').textContent = songText;
+            const currentSongEl = document.getElementById('current-song');
+            const nowPlayingMini = document.getElementById('now-playing-mini');
+            if (currentSongEl) currentSongEl.textContent = songText;
+            if (nowPlayingMini) nowPlayingMini.textContent = songText;
         }
         
         function loadSong(index) {
-            audio.src = songs[index];
-            audio.load();
-            updateSongDisplay();
-            if (isPlaying) {
-                audio.play().catch(e => {
-                    console.log('Auto-play bloqueado');
-                    isPlaying = false;
-                    document.getElementById('play-pause').textContent = '▶';
-                    document.getElementById('play-pause-mini').textContent = '▶';
-                });
+            if (audio.src !== songs[index]) {
+                audio.src = songs[index];
+                audio.load();
             }
+            updateSongDisplay();
         }
+        
+        function playMusic() {
+            if (!audioInicializado) {
+                audioInicializado = true;
+                // Cambiar el indicador después del primer toque
+                document.getElementById('zoom-indicator').textContent = '⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐';
+            }
+            audio.play()
+                .then(() => {
+                    isPlaying = true;
+                    document.getElementById('play-pause').textContent = '⏸';
+                    document.getElementById('play-pause-mini').textContent = '⏸';
+                })
+                .catch(e => console.log('Error al reproducir:', e));
+        }
+        
+        function togglePlay() {
+            if (isPlaying) {
+                audio.pause();
+                document.getElementById('play-pause').textContent = '▶';
+                document.getElementById('play-pause-mini').textContent = '▶';
+            } else {
+                playMusic();
+            }
+            isPlaying = !isPlaying;
+        }
+        
+        // Event listeners del reproductor
+        function setupMusicControls() {
+            document.getElementById('play-pause').addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePlay();
+            });
+            
+            document.getElementById('play-pause-mini').addEventListener('click', (e) => {
+                e.stopPropagation();
+                togglePlay();
+            });
+            
+            document.getElementById('next-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentSongIndex = (currentSongIndex + 1) % songs.length;
+                loadSong(currentSongIndex);
+                if (isPlaying) playMusic();
+            });
+            
+            document.getElementById('next-song-mini').addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentSongIndex = (currentSongIndex + 1) % songs.length;
+                loadSong(currentSongIndex);
+                if (isPlaying) playMusic();
+            });
+            
+            document.getElementById('prev-song').addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+                loadSong(currentSongIndex);
+                if (isPlaying) playMusic();
+            });
+            
+            document.getElementById('prev-song-mini').addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+                loadSong(currentSongIndex);
+                if (isPlaying) playMusic();
+            });
+            
+            document.getElementById('progress-bar').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const width = rect.width;
+                const percentage = Math.max(0, Math.min(1, x / width));
+                audio.currentTime = percentage * audio.duration;
+            });
+            
+            document.getElementById('volume-slider').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const width = rect.width;
+                const percentage = Math.max(0, Math.min(1, x / width));
+                audio.volume = percentage;
+                document.getElementById('volume-bar').style.width = (percentage * 100) + '%';
+            });
+        }
+        
+        audio.addEventListener('timeupdate', () => {
+            if (audio.duration) {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                document.getElementById('progress-fill').style.width = progress + '%';
+                document.getElementById('current-time').textContent = formatTime(audio.currentTime);
+                document.getElementById('total-time').textContent = formatTime(audio.duration);
+            }
+        });
+        
+        audio.addEventListener('ended', () => {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            loadSong(currentSongIndex);
+            if (isPlaying) playMusic();
+        });
         
         function formatTime(seconds) {
             if (isNaN(seconds)) return '0:00';
@@ -471,229 +648,165 @@
             return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         }
         
-        // Event listeners
-        audio.addEventListener('timeupdate', () => {
-            const progress = (audio.currentTime / audio.duration) * 100;
-            document.getElementById('progress-fill').style.width = progress + '%';
-            document.getElementById('current-time').textContent = formatTime(audio.currentTime);
-            document.getElementById('total-time').textContent = formatTime(audio.duration);
-        });
-        
-        audio.addEventListener('ended', () => {
-            currentSongIndex = (currentSongIndex + 1) % songs.length;
-            loadSong(currentSongIndex);
-        });
-        
-        // Cargar primera canción
-        loadSong(0);
-        
-        // Función para toggle play/pause
-        function togglePlay() {
-            if (isPlaying) {
-                audio.pause();
-                document.getElementById('play-pause').textContent = '▶';
-                document.getElementById('play-pause-mini').textContent = '▶';
-            } else {
-                audio.play();
-                document.getElementById('play-pause').textContent = '⏸';
-                document.getElementById('play-pause-mini').textContent = '⏸';
+        // ===== FUNCIÓN PARA INICIAR TODO CON EL PRIMER TOQUE =====
+        function iniciarExperiencia() {
+            // Quitar loader
+            loader.classList.add('hidden');
+            
+            // Iniciar música SOLO una vez
+            if (!audioInicializado) {
+                playMusic();
             }
-            isPlaying = !isPlaying;
-        }
-        
-        // Controles principales
-        document.getElementById('play-pause').addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePlay();
-        });
-        
-        document.getElementById('play-pause-mini').addEventListener('click', (e) => {
-            e.stopPropagation();
-            togglePlay();
-        });
-        
-        function nextSong() {
-            currentSongIndex = (currentSongIndex + 1) % songs.length;
-            loadSong(currentSongIndex);
-        }
-        
-        function prevSong() {
-            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
-            loadSong(currentSongIndex);
-        }
-        
-        document.getElementById('next-song').addEventListener('click', (e) => {
-            e.stopPropagation();
-            nextSong();
-        });
-        
-        document.getElementById('next-song-mini').addEventListener('click', (e) => {
-            e.stopPropagation();
-            nextSong();
-        });
-        
-        document.getElementById('prev-song').addEventListener('click', (e) => {
-            e.stopPropagation();
-            prevSong();
-        });
-        
-        document.getElementById('prev-song-mini').addEventListener('click', (e) => {
-            e.stopPropagation();
-            prevSong();
-        });
-        
-        document.getElementById('progress-bar').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rect = e.target.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const percentage = x / width;
-            audio.currentTime = percentage * audio.duration;
-        });
-        
-        document.getElementById('volume-slider').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rect = e.target.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const width = rect.width;
-            const percentage = Math.max(0, Math.min(1, x / width));
-            audio.volume = percentage;
-            document.getElementById('volume-bar').style.width = (percentage * 100) + '%';
-        });
-        
-        // --- FUNCIONALIDAD MINIMIZAR/EXPANDIR ---
-        const musicPlayer = document.getElementById('music-player');
-        const toggleBtn = document.getElementById('toggle-player');
-        let isMinimized = false;
-        
-        toggleBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            isMinimized = !isMinimized;
             
-            if (isMinimized) {
-                musicPlayer.classList.add('minimized');
-                toggleBtn.textContent = '⬆️'; // Flecha hacia arriba para expandir
-            } else {
-                musicPlayer.classList.remove('minimized');
-                toggleBtn.textContent = '🔽'; // Flecha hacia abajo para minimizar
+            // Cambiar el indicador
+            document.getElementById('zoom-indicator').textContent = '⭐ LAS ESTRELLAS SON TUS FOTOS - HAZ ZOOM ⭐';
+            
+            // Remover listeners después del primer toque
+            document.removeEventListener('touchstart', iniciarExperiencia);
+            document.removeEventListener('click', iniciarExperiencia);
+        }
+        
+        // Esperar primer interacción del usuario
+        document.addEventListener('touchstart', iniciarExperiencia, { once: true });
+        document.addEventListener('click', iniciarExperiencia, { once: true });
+        
+        // ===== CONFIGURACIÓN 3D OPTIMIZADA =====
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050510);
+            
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            // Cámara
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3, isMobile ? 24 : 22);
+            
+            // Renderer optimizado
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true, 
+                alpha: false,
+                powerPreference: "high-performance"
+            });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+            document.body.appendChild(renderer.domElement);
+            
+            // Controles
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = isMobile ? 0.25 : 0.3;
+            controls.maxDistance = 35;
+            controls.minDistance = 5;
+            controls.enablePan = false;
+            controls.target.set(0, 0, 0);
+            
+            if (isMobile) {
+                controls.touches = {
+                    ONE: THREE.TOUCH.ROTATE,
+                    TWO: THREE.TOUCH.DOLLY_PAN
+                };
             }
-        });
-        
-        // --- CONFIGURACIÓN 3D ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050510);
-        
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const cameraDistance = isMobile ? 24 : 22;
-        
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 3, cameraDistance);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ReinhardToneMapping;
-        renderer.toneMappingExposure = 1.2;
-        document.body.appendChild(renderer.domElement);
-        
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = isMobile ? 0.3 : 0.35;
-        controls.enableZoom = true;
-        controls.maxDistance = 35;
-        controls.minDistance = 5;
-        controls.enablePan = false;
-        controls.target.set(0, 0, 0);
-        
-        if (isMobile) {
-            controls.touches = {
-                ONE: THREE.TOUCH.ROTATE,
-                TWO: THREE.TOUCH.DOLLY_PAN
-            };
+            
+            // Luces (menos cantidad para mejor rendimiento)
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            
+            // Solo 3 luces puntuales
+            const lightPositions = [
+                [6, 4, 6, 0xff4da6],
+                [-6, -3, 6, 0x4da6ff],
+                [4, 5, -6, 0xaa88ff]
+            ];
+            
+            lightPositions.forEach(([x, y, z, color]) => {
+                const light = new THREE.PointLight(color, 0.6, 30);
+                light.position.set(x, y, z);
+                scene.add(light);
+            });
+            
+            // Crear partículas (menos en móvil)
+            createParticles(isMobile ? 2500 : 4000);
+            createStars(1000);
+            
+            // Configurar controles de música
+            setupMusicControls();
+            
+            // Generar todos los objetos de forma diferida
+            generateAllObjects();
+            
+            // Iniciar animación
+            animate();
         }
         
-        // --- LUCES ---
-        const ambientLight = new THREE.AmbientLight(0x404060);
-        scene.add(ambientLight);
-        
-        const light1 = new THREE.PointLight(0xff4da6, 0.8, 30);
-        light1.position.set(6, 4, 6);
-        scene.add(light1);
-        
-        const light2 = new THREE.PointLight(0x4da6ff, 0.8, 30);
-        light2.position.set(-6, -3, 6);
-        scene.add(light2);
-        
-        const light3 = new THREE.PointLight(0xaa88ff, 0.8, 30);
-        light3.position.set(4, 5, -6);
-        scene.add(light3);
-        
-        // --- PARTÍCULAS DE FONDO ---
-        const particleCount = isMobile ? 3000 : 5000;
-        const particlesGeo = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        const colors = new Float32Array(particleCount * 3);
-        
-        const color = new THREE.Color();
-        
-        for (let i = 0; i < particleCount; i++) {
-            const radius = 12 + Math.random() * 10;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
+        function createParticles(count) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            const colors = new Float32Array(count * 3);
+            const color = new THREE.Color();
             
-            const x = radius * Math.sin(phi) * Math.cos(theta);
-            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.5;
-            const z = radius * Math.cos(phi);
+            for (let i = 0; i < count; i++) {
+                const r = 12 + Math.random() * 10;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                
+                positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta) * 0.5;
+                positions[i*3+2] = r * Math.cos(phi);
+                
+                color.setHSL(0.7 + Math.random() * 0.4, 0.8, 0.5 + Math.random() * 0.3);
+                colors[i*3] = color.r;
+                colors[i*3+1] = color.g;
+                colors[i*3+2] = color.b;
+            }
             
-            positions[i*3] = x;
-            positions[i*3+1] = y;
-            positions[i*3+2] = z;
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
             
-            const hue = 0.7 + Math.random() * 0.4;
-            color.setHSL(hue % 1.0, 0.8, 0.5 + Math.random() * 0.3);
+            const material = new THREE.PointsMaterial({
+                size: 0.1,
+                vertexColors: true,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false,
+                sizeAttenuation: true
+            });
             
-            colors[i*3] = color.r;
-            colors[i*3+1] = color.g;
-            colors[i*3+2] = color.b;
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            recursoCargado();
         }
         
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        particlesGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-        
-        const particlesMat = new THREE.PointsMaterial({
-            size: 0.12,
-            vertexColors: true,
-            blending: THREE.AdditiveBlending,
-            transparent: true,
-            depthWrite: false,
-            sizeAttenuation: true
-        });
-        
-        const particles = new THREE.Points(particlesGeo, particlesMat);
-        scene.add(particles);
-        
-        // Estrellas de fondo
-        const starsGeo = new THREE.BufferGeometry();
-        const starsPos = new Float32Array(1500 * 3);
-        for (let i = 0; i < 1500; i++) {
-            const r = 20 + Math.random() * 15;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos((Math.random() * 2) - 1);
-            starsPos[i*3] = r * Math.sin(phi) * Math.cos(theta);
-            starsPos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
-            starsPos[i*3+2] = r * Math.cos(phi);
+        function createStars(count) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(count * 3);
+            
+            for (let i = 0; i < count; i++) {
+                const r = 20 + Math.random() * 15;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos((Math.random() * 2) - 1);
+                positions[i*3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+                positions[i*3+2] = r * Math.cos(phi);
+            }
+            
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ 
+                color: 0xffffff, 
+                size: 0.05, 
+                blending: THREE.AdditiveBlending,
+                sizeAttenuation: true
+            });
+            stars = new THREE.Points(geometry, material);
+            scene.add(stars);
+            recursoCargado();
         }
-        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsPos, 3));
-        const starsMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.06, sizeAttenuation: true, blending: THREE.AdditiveBlending });
-        const stars = new THREE.Points(starsGeo, starsMat);
-        scene.add(stars);
         
-        // ===== FUNCIÓN PARA GENERAR POSICIONES =====
+        // ===== FUNCIÓN PARA GENERAR POSICIONES (OPTIMIZADA) =====
         function generarPosiciones(cantidad, radioMin, radioMax, excluir = []) {
             const posiciones = [];
-            const intentosMax = 1000;
+            const intentosMax = 300; // Reducido para mejor rendimiento
             
             for (let i = 0; i < cantidad; i++) {
                 let intentos = 0;
@@ -701,235 +814,218 @@
                 let nuevaPos;
                 
                 while (!valida && intentos < intentosMax) {
-                    const u = Math.random();
-                    const v = Math.random();
-                    
-                    const theta = 2 * Math.PI * u;
-                    const phi = Math.acos(2 * v - 1);
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
                     const r = radioMin + Math.random() * (radioMax - radioMin);
                     
-                    const x = r * Math.sin(phi) * Math.cos(theta);
-                    const y = r * Math.sin(phi) * Math.sin(theta) * 0.6;
-                    const z = r * Math.cos(phi);
-                    
-                    nuevaPos = [x, y, z];
+                    nuevaPos = [
+                        r * Math.sin(phi) * Math.cos(theta),
+                        r * Math.sin(phi) * Math.sin(theta) * 0.6,
+                        r * Math.cos(phi)
+                    ];
                     
                     valida = true;
-                    for (let j = 0; j < posiciones.length; j++) {
+                    // Solo verificar contra las primeras 15 posiciones
+                    const maxCheck = Math.min(posiciones.length, 15);
+                    for (let j = 0; j < maxCheck; j++) {
                         const dx = nuevaPos[0] - posiciones[j][0];
                         const dy = nuevaPos[1] - posiciones[j][1];
                         const dz = nuevaPos[2] - posiciones[j][2];
-                        const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                        
-                        if (dist < 3.2) {
+                        if (dx*dx + dy*dy + dz*dz < 10) { // distancia ~3.16
                             valida = false;
                             break;
                         }
                     }
-                    
-                    if (valida) {
-                        for (let j = 0; j < excluir.length; j++) {
-                            const dx = nuevaPos[0] - excluir[j][0];
-                            const dy = nuevaPos[1] - excluir[j][1];
-                            const dz = nuevaPos[2] - excluir[j][2];
-                            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-                            
-                            if (dist < 3.5) {
-                                valida = false;
-                                break;
-                            }
-                        }
-                    }
-                    
                     intentos++;
                 }
-                
-                if (valida) {
-                    posiciones.push(nuevaPos);
-                } else {
-                    const theta = 2 * Math.PI * Math.random();
-                    const phi = Math.acos(2 * Math.random() - 1);
-                    const r = radioMax - 1;
-                    const x = r * Math.sin(phi) * Math.cos(theta);
-                    const y = r * Math.sin(phi) * Math.sin(theta) * 0.6;
-                    const z = r * Math.cos(phi);
-                    posiciones.push([x, y, z]);
-                }
+                posiciones.push(nuevaPos || [radioMax * (Math.random() - 0.5), 0, 0]);
             }
-            
             return posiciones;
         }
         
-        // ===== NEBULOSAS =====
-        const numNebulosas = 11;
-        const posicionesNebulosas = generarPosiciones(numNebulosas, 6, 9);
-        
-        const textos = [
-            '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨',
-            '💫 Que la vida te mime tanto como tú mereces 💫',
-            '❤️ Tu risa es lo que más extraño ❤️',
-            '🌌 Eres mi persona favorita en el universo 🌌',
-            'No te alejes por favor.'
-        ];
-        
-        const imagenesNebulosas = [
-            { archivo: 'foto1.JPEG', texto: 'Nuestra primera salida de pareja' },
-            { archivo: 'foto2.jpg', texto: '¡Feliz día!' },
-            { archivo: 'foto3.jpg', texto: 'Brilla hoy como nunca, es tu día' },
-            { archivo: 'foto4.jpg', texto: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!' },
-            { archivo: 'foto5.jpg', texto: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!' },
-            { archivo: 'foto6.jpg', texto: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.' }
-        ];
-        
-        const coloresNebulosas = [
-            0xff66b2, 0x66b2ff, 0xcc66ff, 0xffaa88, 0xff66cc,
-            0xffaa88, 0x88aaff, 0xff88aa, 0xff66cc, 0xff66cc, 0xff66cc
-        ];
-        
-        const esferas = [];
-        
-        for (let i = 0; i < 5; i++) {
-            const pos = posicionesNebulosas[i];
-            const geometry = new THREE.SphereGeometry(0.7, 32, 32);
-            const material = new THREE.MeshStandardMaterial({
-                color: coloresNebulosas[i],
-                emissive: coloresNebulosas[i],
-                emissiveIntensity: 0.4,
-                roughness: 0.3,
-                metalness: 0.1
-            });
+        // ===== CREAR TODOS LOS OBJETOS (CARGA DIFERIDA) =====
+        function generateAllObjects() {
+            // 1. Posiciones base
+            const posNeb = generarPosiciones(11, 6, 9);
+            const posNebArray = posNeb.map(p => [p[0], p[1], p[2]]);
             
-            const esfera = new THREE.Mesh(geometry, material);
-            esfera.position.set(pos[0], pos[1], pos[2]);
+            // 2. Crear nebulosas (en batches)
+            setTimeout(() => createNebulosas(posNeb), 100);
             
-            esfera.userData = {
-                tipo: 'texto',
-                contenido: textos[i]
-            };
+            // 3. Posiciones para estrellas
+            setTimeout(() => {
+                const posEstrellas = generarPosiciones(14, 8, 12, posNebArray);
+                createEstrellasMagicas(posEstrellas);
+            }, 300);
             
-            scene.add(esfera);
-            esferas.push(esfera);
-            
-            const pointLight = new THREE.PointLight(coloresNebulosas[i], 0.6, 7);
-            pointLight.position.set(pos[0], pos[1], pos[2]);
-            scene.add(pointLight);
+            // 4. Posiciones para videos
+            setTimeout(() => {
+                const posEstrellas = generarPosiciones(14, 8, 12, posNebArray);
+                const posVideos = generarPosiciones(6, 9, 13, [...posNebArray, ...posEstrellas]);
+                createVideos(posVideos);
+            }, 500);
         }
         
-        for (let i = 0; i < 6; i++) {
-            const pos = posicionesNebulosas[i + 5];
-            const geometry = new THREE.SphereGeometry(0.7, 32, 32);
-            const material = new THREE.MeshStandardMaterial({
-                color: coloresNebulosas[i + 5],
-                emissive: coloresNebulosas[i + 5],
-                emissiveIntensity: 0.4,
-                roughness: 0.3,
-                metalness: 0.1
-            });
+        // Nebulosas
+        function createNebulosas(posiciones) {
+            const textos = [
+                '✨ Gracias por todas las sonrisas. Espero que tengas un lindo cumpleaños ✨',
+                '💫 Que la vida te mime tanto como tú mereces 💫',
+                '❤️ Tu risa es lo que más extraño ❤️',
+                '🌌 Eres mi persona favorita en el universo 🌌',
+                'No te alejes por favor.'
+            ];
             
-            const esfera = new THREE.Mesh(geometry, material);
-            esfera.position.set(pos[0], pos[1], pos[2]);
+            const imagenesNebulosas = [
+                { archivo: 'foto1.JPEG', texto: 'Nuestra primera salida de pareja' },
+                { archivo: 'foto2.jpg', texto: '¡Feliz día!' },
+                { archivo: 'foto3.jpg', texto: 'Brilla hoy como nunca, es tu día' },
+                { archivo: 'foto4.jpg', texto: 'Que nunca te falten ganas de vivir, de reír y de seguir siendo tú. ¡Feliz cumpleaños!' },
+                { archivo: 'foto5.jpg', texto: 'Feliz cumpleaños sinceramente, deseo con todo mi corazón que tu vida siga floreciendo y sigas avanzando. Recuerda que siempre estaré a tu lado. ¡Felicidades!' },
+                { archivo: 'foto6.jpg', texto: 'Deseo que a pesar del paso de los años continúes teniendo esa alegría, encanto y bondad que te caracterizan.' }
+            ];
             
-            esfera.userData = {
-                tipo: 'imagen',
-                contenido: imagenesNebulosas[i].archivo,
-                textoAlternativo: imagenesNebulosas[i].texto
-            };
+            const colores = [
+                0xff66b2, 0x66b2ff, 0xcc66ff, 0xffaa88, 0xff66cc,
+                0xffaa88, 0x88aaff, 0xff88aa, 0xff66cc, 0xff66cc, 0xff66cc
+            ];
             
-            scene.add(esfera);
-            esferas.push(esfera);
+            // Textos (primeras 5)
+            for (let i = 0; i < 5; i++) {
+                if (!posiciones[i]) continue;
+                const pos = posiciones[i];
+                const geometry = new THREE.SphereGeometry(0.65, 24, 24); // Menos segmentos
+                const material = new THREE.MeshStandardMaterial({
+                    color: colores[i],
+                    emissive: colores[i],
+                    emissiveIntensity: 0.4,
+                    roughness: 0.3
+                });
+                
+                const esfera = new THREE.Mesh(geometry, material);
+                esfera.position.set(pos[0], pos[1], pos[2]);
+                esfera.userData = { tipo: 'texto', contenido: textos[i] };
+                
+                scene.add(esfera);
+                esferas.push(esfera);
+                
+                const light = new THREE.PointLight(colores[i], 0.4, 5);
+                light.position.set(pos[0], pos[1], pos[2]);
+                scene.add(light);
+                recursoCargado();
+            }
             
-            const pointLight = new THREE.PointLight(coloresNebulosas[i + 5], 0.6, 7);
-            pointLight.position.set(pos[0], pos[1], pos[2]);
-            scene.add(pointLight);
+            // Imágenes (siguientes 6)
+            for (let i = 0; i < 6; i++) {
+                if (!posiciones[i + 5]) continue;
+                const pos = posiciones[i + 5];
+                const geometry = new THREE.SphereGeometry(0.65, 24, 24);
+                const material = new THREE.MeshStandardMaterial({
+                    color: colores[i + 5],
+                    emissive: colores[i + 5],
+                    emissiveIntensity: 0.4,
+                    roughness: 0.3
+                });
+                
+                const esfera = new THREE.Mesh(geometry, material);
+                esfera.position.set(pos[0], pos[1], pos[2]);
+                esfera.userData = {
+                    tipo: 'imagen',
+                    contenido: imagenesNebulosas[i].archivo,
+                    textoAlternativo: imagenesNebulosas[i].texto
+                };
+                
+                scene.add(esfera);
+                esferas.push(esfera);
+                
+                const light = new THREE.PointLight(colores[i + 5], 0.4, 5);
+                light.position.set(pos[0], pos[1], pos[2]);
+                scene.add(light);
+                recursoCargado();
+            }
         }
         
-        // ===== ESTRELLAS MÁGICAS =====
-        const posicionesNebulosasArray = posicionesNebulosas.map(p => [p[0], p[1], p[2]]);
-        const posicionesEstrellas = generarPosiciones(14, 8, 12, posicionesNebulosasArray);
-        
-        const estrellasMagicas = [
-            'foto7.jpg', 'foto8.jpg', 'foto9.jpg', 'foto10.jpg',
-            'foto11.jpg', 'foto12.jpg', 'foto13.jpg', 'foto14.jpg',
-            'foto15.jpg', 'foto16.jpg', 'foto17.jpg', 'foto18.jpg',
-            'foto19.jpg', 'foto20.jpg'
-        ];
-        
-        const textureLoader = new THREE.TextureLoader();
-        
-        estrellasMagicas.forEach((archivo, index) => {
-            textureLoader.load(
-                archivo,
-                (texture) => {
-                    const material = new THREE.SpriteMaterial({ 
-                        map: texture,
-                        transparent: false,
-                        blending: THREE.NormalBlending,
-                        depthTest: true,
-                        depthWrite: true,
-                        sizeAttenuation: true,
-                        color: 0xffffff
-                    });
-                    
-                    const sprite = new THREE.Sprite(material);
-                    const pos = posicionesEstrellas[index];
-                    sprite.position.set(pos[0], pos[1], pos[2]);
-                    sprite.scale.set(2.3, 2.3, 1);
-                    
-                    scene.add(sprite);
-                },
-                undefined,
-                (err) => {
-                    console.warn(`❌ Error cargando: ${archivo}`);
-                }
-            );
-        });
-        
-        // ===== VIDEOS =====
-        const posicionesVideos = generarPosiciones(6, 9, 13, [...posicionesNebulosasArray, ...posicionesEstrellas]);
-        
-        const videosInfo = [
-            { archivo: 'video1.MP4', texto: '🎬 El universo está de fiesta.', color: 0xffaa66 },
-            { archivo: 'video2.mp4', texto: '🎬 Doy gracias cada día por haberte conocido y pido perdon por haberte fallado.', color: 0xff66cc },
-            { archivo: 'video3.mp4', texto: '🎬 Tal vez no pueda estar a tu lado en este momento pero espero algun día poder estarlo, felicidades y espero que sea un dia maravillos para ti.', color: 0x66ffcc },
-            { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff },
-            { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88 },
-            { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff }
-        ];
-        
-        const objetosMagicos = [];
-        
-        videosInfo.forEach((video, index) => {
-            const geometry = new THREE.SphereGeometry(0.75, 24, 24);
-            const material = new THREE.MeshStandardMaterial({
-                color: video.color,
-                emissive: video.color,
-                emissiveIntensity: 0.5,
-                roughness: 0.3,
-                metalness: 0.1
+        // Estrellas mágicas
+        function createEstrellasMagicas(posiciones) {
+            const archivos = [
+                'foto7.jpg', 'foto8.jpg', 'foto9.jpg', 'foto10.jpg',
+                'foto11.jpg', 'foto12.jpg', 'foto13.jpg', 'foto14.jpg',
+                'foto15.jpg', 'foto16.jpg', 'foto17.jpg', 'foto18.jpg',
+                'foto19.jpg', 'foto20.jpg'
+            ];
+            
+            const textureLoader = new THREE.TextureLoader();
+            
+            archivos.forEach((archivo, index) => {
+                if (!posiciones[index]) return;
+                
+                textureLoader.load(
+                    archivo,
+                    (texture) => {
+                        const material = new THREE.SpriteMaterial({ 
+                            map: texture,
+                            blending: THREE.NormalBlending,
+                            sizeAttenuation: true
+                        });
+                        const sprite = new THREE.Sprite(material);
+                        const pos = posiciones[index];
+                        sprite.position.set(pos[0], pos[1], pos[2]);
+                        sprite.scale.set(2.2, 2.2, 1);
+                        scene.add(sprite);
+                        recursoCargado();
+                    },
+                    undefined,
+                    () => recursoCargado() // Contar como cargado aunque falle
+                );
             });
-            const esferaVideo = new THREE.Mesh(geometry, material);
-            const pos = posicionesVideos[index];
-            esferaVideo.position.set(pos[0], pos[1], pos[2]);
-            
-            esferaVideo.userData = {
-                tipo: 'video',
-                archivo: video.archivo,
-                texto: video.texto,
-                esMagico: true
-            };
-            
-            scene.add(esferaVideo);
-            objetosMagicos.push(esferaVideo);
-            
-            const pointLight = new THREE.PointLight(video.color, 0.6, 7);
-            pointLight.position.set(pos[0], pos[1], pos[2]);
-            scene.add(pointLight);
-        });
+        }
         
-        // --- RAYCASTER PARA CLICS ---
+        // Videos
+        function createVideos(posiciones) {
+            const videosInfo = [
+                { archivo: 'video1.MP4', texto: '🎬 El universo está de fiesta.', color: 0xffaa66 },
+                { archivo: 'video2.mp4', texto: '🎬 Doy gracias cada día por haberte conocido y pido perdon por haberte fallado.', color: 0xff66cc },
+                { archivo: 'video3.mp4', texto: '🎬 Tal vez no pueda estar a tu lado en este momento pero espero algun día poder estarlo, felicidades y espero que sea un dia maravilloso para ti.', color: 0x66ffcc },
+                { archivo: 'video4.mp4', texto: '🎬 Te pienso en tu día', color: 0xcc66ff },
+                { archivo: 'video5.mp4', texto: '🎬 No dejes de brillar', color: 0xffaa88 },
+                { archivo: 'video6.mp4', texto: '🎬 Tu luz interior', color: 0x88aaff }
+            ];
+            
+            videosInfo.forEach((video, index) => {
+                if (!posiciones[index]) return;
+                
+                const geometry = new THREE.SphereGeometry(0.7, 16, 16); // Menos segmentos
+                const material = new THREE.MeshStandardMaterial({
+                    color: video.color,
+                    emissive: video.color,
+                    emissiveIntensity: 0.4
+                });
+                
+                const esfera = new THREE.Mesh(geometry, material);
+                const pos = posiciones[index];
+                esfera.position.set(pos[0], pos[1], pos[2]);
+                
+                esfera.userData = {
+                    tipo: 'video',
+                    archivo: video.archivo,
+                    texto: video.texto,
+                    esMagico: true
+                };
+                
+                scene.add(esfera);
+                objetosMagicos.push(esfera);
+                
+                const light = new THREE.PointLight(video.color, 0.4, 5);
+                light.position.set(pos[0], pos[1], pos[2]);
+                scene.add(light);
+                recursoCargado();
+            });
+        }
+        
+        // ===== RAYCASTER OPTIMIZADO =====
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
-        let videoActual = null;
+        let clickTimeout = null;
         
         function detenerVideoActual() {
             if (videoActual) {
@@ -938,11 +1034,14 @@
                 videoActual = null;
             }
         }
-        
         window.detenerVideoActual = detenerVideoActual;
         
         function handleInteraction(event) {
             event.preventDefault();
+            
+            // Evitar múltiples clics rápidos
+            if (clickTimeout) return;
+            clickTimeout = setTimeout(() => { clickTimeout = null; }, 300);
             
             const rect = renderer.domElement.getBoundingClientRect();
             const clientX = event.touches ? event.touches[0].clientX : event.clientX;
@@ -953,8 +1052,13 @@
             
             raycaster.setFromCamera(mouse, camera);
             
-            const todosLosObjetosClickeables = [...esferas, ...objetosMagicos];
-            const intersects = raycaster.intersectObjects(todosLosObjetosClickeables);
+            // Optimización: solo revisar objetos cercanos
+            const objetosCercanos = [...esferas, ...objetosMagicos].filter(obj => {
+                const dist = obj.position.distanceTo(camera.position);
+                return dist < 15;
+            });
+            
+            const intersects = raycaster.intersectObjects(objetosCercanos);
             
             if (intersects.length > 0) {
                 const objeto = intersects[0].object;
@@ -963,20 +1067,19 @@
                 
                 detenerVideoActual();
                 
-                let contenidoHTML = '';
-                contenidoHTML += '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\'); detenerVideoActual();">✕</div>';
+                let contenidoHTML = '<div id="cerrar-mensaje" onclick="document.getElementById(\'mensaje\').classList.remove(\'visible\'); detenerVideoActual();">✕</div>';
                 
                 if (datos.tipo === 'video' && datos.esMagico) {
-                    contenidoHTML += `<p style="margin:0; font-style:italic; margin-bottom:10px;">🎬</p>`;
+                    contenidoHTML += `<p style="margin:0 0 10px;">🎬</p>`;
                     contenidoHTML += `<p style="margin:5px 0 15px;">${datos.texto}</p>`;
-                    contenidoHTML += `<video id="video-reproduccion" muted controls playsinline style="width:100%; max-width:300px; border-radius:15px; margin-top:10px;" src="${datos.archivo}"></video>`;
+                    contenidoHTML += `<video id="video-reproduccion" muted controls playsinline style="width:100%; border-radius:15px;" src="${datos.archivo}"></video>`;
                 } 
                 else if (datos.tipo === 'texto') {
                     contenidoHTML += `<p style="margin:0; font-style:italic;">💬</p><p style="margin:15px 0 0;">${datos.contenido}</p>`;
                 } 
                 else if (datos.tipo === 'imagen') {
                     contenidoHTML += `<p style="margin-bottom:15px;">${datos.textoAlternativo}</p>`;
-                    contenidoHTML += `<img src="${datos.contenido}" alt="${datos.textoAlternativo}" style="max-width:300px; max-height:300px; border-radius:15px; border:3px solid white;">`;
+                    contenidoHTML += `<img src="${datos.contenido}" alt="${datos.textoAlternativo}" style="max-width:100%; border-radius:15px;">`;
                 }
                 
                 mensajeDiv.innerHTML = contenidoHTML;
@@ -988,6 +1091,7 @@
                     }, 100);
                 }
                 
+                // Feedback visual
                 if (objeto.material.emissiveIntensity !== undefined) {
                     objeto.material.emissiveIntensity = 1.2;
                     setTimeout(() => {
@@ -999,28 +1103,42 @@
             }
         }
         
-        renderer.domElement.addEventListener('click', handleInteraction);
-        renderer.domElement.addEventListener('touchstart', handleInteraction, { passive: false });
+        // ===== MINIMIZAR/EXPANDIR REPRODUCTOR =====
+        const musicPlayer = document.getElementById('music-player');
+        const toggleBtn = document.getElementById('toggle-player');
+        let isMinimized = false;
         
-        // --- ANIMACIÓN ---
+        toggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMinimized = !isMinimized;
+            musicPlayer.classList.toggle('minimized', isMinimized);
+            toggleBtn.textContent = isMinimized ? '⬆️' : '🔽';
+        });
+        
+        // ===== ANIMACIÓN =====
         function animate() {
             requestAnimationFrame(animate);
             
-            particles.rotation.y += 0.0001;
-            stars.rotation.y -= 0.00005;
+            if (particles) particles.rotation.y += 0.0001;
+            if (stars) stars.rotation.y -= 0.00005;
             
             controls.update();
             renderer.render(scene, camera);
         }
         
-        animate();
-        
-        window.addEventListener('resize', onWindowResize, false);
-        function onWindowResize() {
+        // ===== RESIZE =====
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
+        
+        // ===== INICIAR TODO =====
+        initScene();
+        
+        // Event listeners para clics (optimizados)
+        renderer.domElement.addEventListener('click', handleInteraction);
+        renderer.domElement.addEventListener('touchstart', handleInteraction, { passive: false });
     </script>
 </body>
 </html>
